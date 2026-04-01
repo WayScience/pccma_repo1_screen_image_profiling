@@ -434,7 +434,7 @@ Resize:[module_num:18|svn_version:'Unknown'|variable_revision_number:5|show_wind
     Select the image with the desired dimensions:None
     Additional image count:0
 
-Resize:[module_num:19|svn_version:'Unknown'|variable_revision_number:5|show_window:False|notes:[]|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:True]
+Resize:[module_num:19|svn_version:'Unknown'|variable_revision_number:5|show_window:False|notes:[]|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
     Select the input image:OrigBrightfield
     Name the output image:DownsampledBrightfield
     Resizing method:Resize by a fraction or multiple of the original size

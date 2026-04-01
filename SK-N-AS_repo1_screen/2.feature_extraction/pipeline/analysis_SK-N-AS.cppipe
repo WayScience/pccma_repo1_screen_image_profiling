@@ -6,7 +6,7 @@ ModuleCount:21
 HasImagePlaneDetails:False
 
 LoadData:[module_num:1|svn_version:'Unknown'|variable_revision_number:6|show_window:False|notes:[]|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
-    Input data file location:Elsewhere...|/media/18tbdrive/1.Github_Repositories/pccma_atlas_image_profiling/3.cp_analysis/loaddata_csvs/cell_line_loaddata_csvs/SK-N-AS
+    Input data file location:Default Input Folder|/media/18tbdrive/1.Github_Repositories/pccma_atlas_image_profiling/3.cp_analysis/loaddata_csvs/cell_line_loaddata_csvs/SK-N-AS
     Name of the file:BR00149123_SK-N-AS_loaddata_with_illum.csv
     Load images based on this data?:Yes
     Base image location:None|
@@ -35,7 +35,7 @@ MeasureImageQuality:[module_num:2|svn_version:'Unknown'|variable_revision_number
     Minimize the weighted variance or the entropy?:Weighted variance
     Assign pixels in the middle intensity class to the foreground or the background?:Foreground
 
-FlagImage:[module_num:3|svn_version:'Unknown'|variable_revision_number:5|show_window:True|notes:[]|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
+FlagImage:[module_num:3|svn_version:'Unknown'|variable_revision_number:5|show_window:False|notes:[]|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
     Hidden:2
     Hidden:5
     Name the flag's category:Metadata
@@ -170,7 +170,7 @@ CorrectIlluminationApply:[module_num:4|svn_version:'Unknown'|variable_revision_n
     Select how the illumination function is applied:Divide
     Select the input image:OrigER
     Name the output image:ER
-    Select the illumination function:IllumAGP
+    Select the illumination function:IllumER
     Select how the illumination function is applied:Divide
     Select the input image:OrigMito
     Name the output image:Mito
@@ -187,7 +187,7 @@ CorrectIlluminationApply:[module_num:4|svn_version:'Unknown'|variable_revision_n
     Set output image values less than 0 equal to 0?:Yes
     Set output image values greater than 1 equal to 1?:Yes
 
-IdentifyPrimaryObjects:[module_num:5|svn_version:'Unknown'|variable_revision_number:15|show_window:True|notes:[]|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
+IdentifyPrimaryObjects:[module_num:5|svn_version:'Unknown'|variable_revision_number:15|show_window:False|notes:[]|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
     Select the input image:DNA
     Name the primary objects to be identified:Nuclei
     Typical diameter of objects, in pixel units (Min,Max):10,55
@@ -223,7 +223,7 @@ IdentifyPrimaryObjects:[module_num:5|svn_version:'Unknown'|variable_revision_num
     # of deviations:2.0
     Thresholding method:Otsu
 
-IdentifySecondaryObjects:[module_num:6|svn_version:'Unknown'|variable_revision_number:10|show_window:True|notes:[]|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
+IdentifySecondaryObjects:[module_num:6|svn_version:'Unknown'|variable_revision_number:10|show_window:False|notes:[]|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
     Select the input objects:Nuclei
     Name the objects to be identified:Cells
     Select the method to identify the secondary objects:Watershed - Image
@@ -253,13 +253,13 @@ IdentifySecondaryObjects:[module_num:6|svn_version:'Unknown'|variable_revision_n
     # of deviations:2.0
     Thresholding method:Minimum Cross-Entropy
 
-IdentifyTertiaryObjects:[module_num:7|svn_version:'Unknown'|variable_revision_number:3|show_window:True|notes:[]|batch_state:array([], dtype=uint8)|enabled:False|wants_pause:False]
+IdentifyTertiaryObjects:[module_num:7|svn_version:'Unknown'|variable_revision_number:3|show_window:False|notes:[]|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
     Select the larger identified objects:Cells
     Select the smaller identified objects:Nuclei
     Name the tertiary objects to be identified:Cytoplasm
     Shrink smaller object prior to subtraction?:Yes
 
-MeasureColocalization:[module_num:8|svn_version:'Unknown'|variable_revision_number:5|show_window:False|notes:['Measure colocalization/correlation across objects and whole images across all channels.']|batch_state:array([], dtype=uint8)|enabled:False|wants_pause:False]
+MeasureColocalization:[module_num:8|svn_version:'Unknown'|variable_revision_number:5|show_window:False|notes:['Measure colocalization/correlation across objects and whole images across all channels.']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
     Select images to measure:CorrAGP, CorrBrightfield, CorrDNA, CorrER, CorrMito, CorrRNA
     Set threshold as percentage of maximum intensity for the images:15.0
     Select where to measure correlation:Both
@@ -272,7 +272,7 @@ MeasureColocalization:[module_num:8|svn_version:'Unknown'|variable_revision_numb
     Calculate the Manders coefficients using Costes auto threshold?:Yes
     Method for Costes thresholding:Faster
 
-MeasureGranularity:[module_num:9|svn_version:'Unknown'|variable_revision_number:4|show_window:False|notes:['Measure granularity across objects and whole images across all channels.']|batch_state:array([], dtype=uint8)|enabled:False|wants_pause:False]
+MeasureGranularity:[module_num:9|svn_version:'Unknown'|variable_revision_number:4|show_window:False|notes:['Measure granularity across objects and whole images across all channels.']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
     Select images to measure:CorrAGP, CorrBrightfield, CorrDNA, CorrER, CorrMito, CorrRNA
     Measure within objects?:Yes
     Select objects to measure:Cells, Cytoplasm, Nuclei
@@ -281,18 +281,18 @@ MeasureGranularity:[module_num:9|svn_version:'Unknown'|variable_revision_number:
     Radius of structuring element:10
     Range of the granular spectrum:16
 
-MeasureImageIntensity:[module_num:10|svn_version:'Unknown'|variable_revision_number:4|show_window:False|notes:['Measure whole image intensity.']|batch_state:array([], dtype=uint8)|enabled:False|wants_pause:False]
+MeasureImageIntensity:[module_num:10|svn_version:'Unknown'|variable_revision_number:4|show_window:False|notes:['Measure whole image intensity.']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
     Select images to measure:CorrAGP, CorrBrightfield, CorrDNA, CorrER, CorrMito, CorrRNA
     Measure the intensity only from areas enclosed by objects?:No
     Select input object sets:
     Calculate custom percentiles:No
     Specify percentiles to measure:10,90
 
-MeasureObjectIntensity:[module_num:11|svn_version:'Unknown'|variable_revision_number:4|show_window:False|notes:['Measure object intensity across all channels.']|batch_state:array([], dtype=uint8)|enabled:False|wants_pause:False]
+MeasureObjectIntensity:[module_num:11|svn_version:'Unknown'|variable_revision_number:4|show_window:False|notes:['Measure object intensity across all channels.']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
     Select images to measure:CorrAGP, CorrBrightfield, CorrDNA, CorrER, CorrMito, CorrRNA
     Select objects to measure:Cells, Cytoplasm, Nuclei
 
-MeasureObjectIntensityDistribution:[module_num:12|svn_version:'Unknown'|variable_revision_number:6|show_window:False|notes:['Measure object radial distribution for magnitudes only with default parameters.']|batch_state:array([], dtype=uint8)|enabled:False|wants_pause:False]
+MeasureObjectIntensityDistribution:[module_num:12|svn_version:'Unknown'|variable_revision_number:6|show_window:False|notes:['Measure object radial distribution for magnitudes only with default parameters.']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
     Select images to measure:CorrAGP, CorrBrightfield, CorrDNA, CorrER, CorrMito, CorrRNA
     Hidden:3
     Hidden:1
@@ -312,7 +312,7 @@ MeasureObjectIntensityDistribution:[module_num:12|svn_version:'Unknown'|variable
     Number of bins:4
     Maximum radius:100
 
-MeasureObjectNeighbors:[module_num:13|svn_version:'Unknown'|variable_revision_number:3|show_window:False|notes:['Measure nuclei neighbors that are adjacent.']|batch_state:array([], dtype=uint8)|enabled:False|wants_pause:False]
+MeasureObjectNeighbors:[module_num:13|svn_version:'Unknown'|variable_revision_number:3|show_window:False|notes:['Measure nuclei neighbors that are adjacent.']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
     Select objects to measure:Nuclei
     Select neighboring objects to measure:Nuclei
     Method to determine neighbors:Adjacent
@@ -325,7 +325,7 @@ MeasureObjectNeighbors:[module_num:13|svn_version:'Unknown'|variable_revision_nu
     Name the output image:PercentTouching
     Select colormap:Oranges
 
-MeasureObjectNeighbors:[module_num:14|svn_version:'Unknown'|variable_revision_number:3|show_window:False|notes:['Measure cells neighbors that are adjacent.']|batch_state:array([], dtype=uint8)|enabled:False|wants_pause:False]
+MeasureObjectNeighbors:[module_num:14|svn_version:'Unknown'|variable_revision_number:3|show_window:False|notes:['Measure cells neighbors that are adjacent.']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
     Select objects to measure:Cells
     Select neighboring objects to measure:Cells
     Method to determine neighbors:Adjacent
@@ -338,12 +338,12 @@ MeasureObjectNeighbors:[module_num:14|svn_version:'Unknown'|variable_revision_nu
     Name the output image:PercentTouching
     Select colormap:Oranges
 
-MeasureObjectSizeShape:[module_num:15|svn_version:'Unknown'|variable_revision_number:3|show_window:False|notes:['Measure area and shape features for objects using default parameters.']|batch_state:array([], dtype=uint8)|enabled:False|wants_pause:False]
+MeasureObjectSizeShape:[module_num:15|svn_version:'Unknown'|variable_revision_number:3|show_window:False|notes:['Measure area and shape features for objects using default parameters.']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
     Select object sets to measure:Cells, Cytoplasm, Nuclei
     Calculate the Zernike features?:Yes
     Calculate the advanced features?:No
 
-MeasureTexture:[module_num:16|svn_version:'Unknown'|variable_revision_number:7|show_window:False|notes:['Measure texture across images and objects across all channels with default parameters.']|batch_state:array([], dtype=uint8)|enabled:False|wants_pause:False]
+MeasureTexture:[module_num:16|svn_version:'Unknown'|variable_revision_number:7|show_window:False|notes:['Measure texture across images and objects across all channels with default parameters.']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
     Select images to measure:CorrAGP, CorrBrightfield, CorrDNA, CorrER, CorrMito, CorrRNA
     Select objects to measure:Cells, Cytoplasm, Nuclei
     Enter how many gray levels to measure the texture at:256
@@ -351,7 +351,7 @@ MeasureTexture:[module_num:16|svn_version:'Unknown'|variable_revision_number:7|s
     Measure whole images or objects?:Both
     Texture scale to measure:3
 
-OverlayOutlines:[module_num:17|svn_version:'Unknown'|variable_revision_number:4|show_window:False|notes:['Create overlay for nuclei objects.']|batch_state:array([], dtype=uint8)|enabled:False|wants_pause:False]
+OverlayOutlines:[module_num:17|svn_version:'Unknown'|variable_revision_number:4|show_window:False|notes:['Create overlay for nuclei objects.']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
     Display outlines on a blank image?:Yes
     Select image on which to display outlines:None
     Name the output image:NucleiOutlines
@@ -361,7 +361,7 @@ OverlayOutlines:[module_num:17|svn_version:'Unknown'|variable_revision_number:4|
     Select outline color:#008000
     Select objects to display:Nuclei
 
-OverlayOutlines:[module_num:18|svn_version:'Unknown'|variable_revision_number:4|show_window:False|notes:['Create overlay of cells outlines.']|batch_state:array([], dtype=uint8)|enabled:False|wants_pause:False]
+OverlayOutlines:[module_num:18|svn_version:'Unknown'|variable_revision_number:4|show_window:False|notes:['Create overlay of cells outlines.']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
     Display outlines on a blank image?:Yes
     Select image on which to display outlines:None
     Name the output image:CellsOutlines
@@ -371,7 +371,7 @@ OverlayOutlines:[module_num:18|svn_version:'Unknown'|variable_revision_number:4|
     Select outline color:#008000
     Select objects to display:Cells
 
-SaveImages:[module_num:19|svn_version:'Unknown'|variable_revision_number:16|show_window:False|notes:['Save nuclei outlines for each image set (well and site per plate).']|batch_state:array([], dtype=uint8)|enabled:False|wants_pause:False]
+SaveImages:[module_num:19|svn_version:'Unknown'|variable_revision_number:16|show_window:False|notes:['Save nuclei outlines for each image set (well and site per plate).']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
     Select the type of image to save:Image
     Select the image to save:NucleiOutlines
     Select method for constructing file names:Single name
@@ -391,7 +391,7 @@ SaveImages:[module_num:19|svn_version:'Unknown'|variable_revision_number:16|show
     How to save the series:T (Time)
     Save with lossless compression?:Yes
 
-SaveImages:[module_num:20|svn_version:'Unknown'|variable_revision_number:16|show_window:False|notes:['Save cells object outlines for each image set (well and site per plate).']|batch_state:array([], dtype=uint8)|enabled:False|wants_pause:False]
+SaveImages:[module_num:20|svn_version:'Unknown'|variable_revision_number:16|show_window:False|notes:['Save cells object outlines for each image set (well and site per plate).']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
     Select the type of image to save:Image
     Select the image to save:CellsOutlines
     Select method for constructing file names:Single name
@@ -411,7 +411,7 @@ SaveImages:[module_num:20|svn_version:'Unknown'|variable_revision_number:16|show
     How to save the series:T (Time)
     Save with lossless compression?:Yes
 
-ExportToDatabase:[module_num:21|svn_version:'Unknown'|variable_revision_number:28|show_window:False|notes:['Export data as an SQLite file.']|batch_state:array([], dtype=uint8)|enabled:False|wants_pause:False]
+ExportToDatabase:[module_num:21|svn_version:'Unknown'|variable_revision_number:28|show_window:False|notes:['Export data as an SQLite file.']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
     Database type:SQLite
     Database name:DefaultDB
     Add a prefix to table names?:No

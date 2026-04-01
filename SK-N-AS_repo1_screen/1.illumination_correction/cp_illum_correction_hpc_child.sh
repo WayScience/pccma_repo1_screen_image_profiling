@@ -18,9 +18,6 @@ conda activate pccma_repo1_cp_env
 # input csv  passed as first argument
 csv=$1
 
-# convert notebooks to python scripts
-jupyter nbconvert --to=script --FilesWriter.build_directory=nbconverted/ *.ipynb
-
 # run your python illumination correction script with the input csv
 python nbconverted/1.cp_illum_correction_hpc.py --input_csv "$csv"
 
