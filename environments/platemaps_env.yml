@@ -1,0 +1,11 @@
+name: pccma_repo1_platemaps_env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pandas
+  - openpyxl
+  - numpy
+  - ipykernel
+  - nbconvert
+  - jupyter

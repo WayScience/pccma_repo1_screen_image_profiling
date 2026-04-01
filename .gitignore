@@ -1,0 +1,13 @@
+# Ignore pycache and Jupyter notebook checkpoints
+__pycache__/
+.ipynb_checkpoints/
+
+# Ignore local LoadData CSVs and CellProfiler output folders (not necessary)
+*/*/loaddata_csvs/
+*/*/cp_output/
+
+# Ignore illum_directory which contains the output of the illumination correction pipeline (not necessary)
+illum_directory/
+
+# Ignore any in_progress work files in folder
+*in_progress/
