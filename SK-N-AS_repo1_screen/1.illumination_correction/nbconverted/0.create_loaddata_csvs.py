@@ -8,7 +8,7 @@
 
 # ## Import libraries
 
-# In[ ]:
+# In[1]:
 
 
 import argparse
@@ -26,7 +26,7 @@ from bandicoot_utils import bandicoot_check
 
 # ## Set paths
 
-# In[ ]:
+# In[2]:
 
 
 argparse = argparse.ArgumentParser(
@@ -41,7 +41,7 @@ HPC = args.HPC
 print(f"HPC: {HPC}")
 
 
-# In[ ]:
+# In[3]:
 
 
 # Set the index directory based on whether HPC is used or not
@@ -67,14 +67,14 @@ config_dir_path = pathlib.Path("./load_data_config").absolute()
 output_csv_dir = pathlib.Path("./loaddata_csvs/")
 output_csv_dir.mkdir(parents=True, exist_ok=True)
 
-# # Find all 'Images' folders within the directory
-# images_folders = list(index_directory.rglob("Images"))
-# print(f"Found {len(images_folders)} 'Images' folders in {index_directory}")
+# Find all 'Images' folders within the directory
+images_folders = list(index_directory.rglob("Images"))
+print(f"Found {len(images_folders)} 'Images' folders in {index_directory}")
 
 
 # ## Create LoadData CSVs for all data
 
-# In[3]:
+# In[4]:
 
 
 config_path = pathlib.Path(config_dir_path / "config.yml").resolve(strict=True)

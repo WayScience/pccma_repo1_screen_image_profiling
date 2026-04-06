@@ -35,7 +35,7 @@ loaddata_dir = pathlib.Path("./loaddata_csvs/").resolve(strict=True)
 
 if not in_notebook:
     print("Running as script")
-    # set up arg parser
+
     parser = argparse.ArgumentParser(
         description="CellProfiler segmentation and feature extraction"
     )
@@ -43,13 +43,17 @@ if not in_notebook:
     parser.add_argument(
         "--input_csv",
         type=str,
+        required=True,
         help="Path to the LoadData CSV file to process images",
     )
 
     args = parser.parse_args()
+
     loaddata_csv = pathlib.Path(args.input_csv).resolve(strict=True)
+
 else:
     print("Running in a notebook")
+
     loaddata_csv = pathlib.Path(
         f"{loaddata_dir}/BR00143976_concatenated_with_illum.csv"
     ).resolve(strict=True)
