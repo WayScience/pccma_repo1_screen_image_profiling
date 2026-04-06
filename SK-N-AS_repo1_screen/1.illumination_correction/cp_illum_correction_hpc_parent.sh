@@ -35,7 +35,7 @@ for loaddata_file in "${loaddata_csvs[@]}"; do
         sleep 1s
         number_of_jobs=$(squeue -u "$USER" | wc -l)
     done
-    sbatch cp_illumination_correction_hpc_child.sh "$loaddata_file"
+    sbatch cp_illum_correction_hpc_child.sh "$loaddata_file"
 done
 
 conda deactivate

@@ -3,9 +3,9 @@
 #SBATCH --ntasks=1
 #SBATCH --mem=10G
 #SBATCH --partition=amilan
-#SBATCH --qos=long
+#SBATCH --qos=normal
 #SBATCH --account=amc-general
-#SBATCH --time=03:00:00
+#SBATCH --time=08:00:00
 #SBATCH --output=run_CP_child-%j.out
 
 # 1 task at 10GB RAM for the core (adjust as needed)

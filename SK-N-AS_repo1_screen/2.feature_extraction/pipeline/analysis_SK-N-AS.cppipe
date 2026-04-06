@@ -6,8 +6,8 @@ ModuleCount:21
 HasImagePlaneDetails:False
 
 LoadData:[module_num:1|svn_version:'Unknown'|variable_revision_number:6|show_window:False|notes:[]|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
-    Input data file location:Default Input Folder|/media/18tbdrive/1.Github_Repositories/pccma_atlas_image_profiling/3.cp_analysis/loaddata_csvs/cell_line_loaddata_csvs/SK-N-AS
-    Name of the file:BR00149123_SK-N-AS_loaddata_with_illum.csv
+    Input data file location:Default Input Folder|/media/18tbdrive/1.Github_Repositories/pccma_repo1_screen_image_profiling/SK-N-AS_repo1_screen/2.feature_extraction/loaddata_csvs
+    Name of the file:
     Load images based on this data?:Yes
     Base image location:None|
     Process just a range of rows?:No
@@ -208,8 +208,8 @@ IdentifyPrimaryObjects:[module_num:5|svn_version:'Unknown'|variable_revision_num
     Threshold strategy:Adaptive
     Thresholding method:Otsu
     Threshold smoothing scale:1
-    Threshold correction factor:1.2
-    Lower and upper bounds on threshold:0.002,1.0
+    Threshold correction factor:1.0
+    Lower and upper bounds on threshold:0.0,1.0
     Manual threshold:0.0
     Select the measurement to threshold with:None
     Two-class or three-class thresholding?:Three classes
@@ -260,7 +260,7 @@ IdentifyTertiaryObjects:[module_num:7|svn_version:'Unknown'|variable_revision_nu
     Shrink smaller object prior to subtraction?:Yes
 
 MeasureColocalization:[module_num:8|svn_version:'Unknown'|variable_revision_number:5|show_window:False|notes:['Measure colocalization/correlation across objects and whole images across all channels.']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
-    Select images to measure:CorrAGP, CorrBrightfield, CorrDNA, CorrER, CorrMito, CorrRNA
+    Select images to measure:AGP, Brightfield, DNA, ER, Mito, RNA
     Set threshold as percentage of maximum intensity for the images:15.0
     Select where to measure correlation:Both
     Select objects to measure:Cells, Cytoplasm, Nuclei
@@ -273,7 +273,7 @@ MeasureColocalization:[module_num:8|svn_version:'Unknown'|variable_revision_numb
     Method for Costes thresholding:Faster
 
 MeasureGranularity:[module_num:9|svn_version:'Unknown'|variable_revision_number:4|show_window:False|notes:['Measure granularity across objects and whole images across all channels.']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
-    Select images to measure:CorrAGP, CorrBrightfield, CorrDNA, CorrER, CorrMito, CorrRNA
+    Select images to measure:AGP, Brightfield, DNA, ER, Mito, RNA
     Measure within objects?:Yes
     Select objects to measure:Cells, Cytoplasm, Nuclei
     Subsampling factor for granularity measurements:0.25
@@ -282,18 +282,18 @@ MeasureGranularity:[module_num:9|svn_version:'Unknown'|variable_revision_number:
     Range of the granular spectrum:16
 
 MeasureImageIntensity:[module_num:10|svn_version:'Unknown'|variable_revision_number:4|show_window:False|notes:['Measure whole image intensity.']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
-    Select images to measure:CorrAGP, CorrBrightfield, CorrDNA, CorrER, CorrMito, CorrRNA
+    Select images to measure:AGP, Brightfield, DNA, ER, Mito, RNA
     Measure the intensity only from areas enclosed by objects?:No
     Select input object sets:
     Calculate custom percentiles:No
     Specify percentiles to measure:10,90
 
 MeasureObjectIntensity:[module_num:11|svn_version:'Unknown'|variable_revision_number:4|show_window:False|notes:['Measure object intensity across all channels.']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
-    Select images to measure:CorrAGP, CorrBrightfield, CorrDNA, CorrER, CorrMito, CorrRNA
+    Select images to measure:AGP, Brightfield, DNA, ER, Mito, RNA
     Select objects to measure:Cells, Cytoplasm, Nuclei
 
 MeasureObjectIntensityDistribution:[module_num:12|svn_version:'Unknown'|variable_revision_number:6|show_window:False|notes:['Measure object radial distribution for magnitudes only with default parameters.']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
-    Select images to measure:CorrAGP, CorrBrightfield, CorrDNA, CorrER, CorrMito, CorrRNA
+    Select images to measure:AGP, Brightfield, DNA, ER, Mito, RNA
     Hidden:3
     Hidden:1
     Hidden:0
@@ -344,7 +344,7 @@ MeasureObjectSizeShape:[module_num:15|svn_version:'Unknown'|variable_revision_nu
     Calculate the advanced features?:No
 
 MeasureTexture:[module_num:16|svn_version:'Unknown'|variable_revision_number:7|show_window:False|notes:['Measure texture across images and objects across all channels with default parameters.']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
-    Select images to measure:CorrAGP, CorrBrightfield, CorrDNA, CorrER, CorrMito, CorrRNA
+    Select images to measure:AGP, Brightfield, DNA, ER, Mito, RNA
     Select objects to measure:Cells, Cytoplasm, Nuclei
     Enter how many gray levels to measure the texture at:256
     Hidden:1
