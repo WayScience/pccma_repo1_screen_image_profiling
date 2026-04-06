@@ -35,68 +35,8 @@ MeasureImageQuality:[module_num:2|svn_version:'Unknown'|variable_revision_number
     Minimize the weighted variance or the entropy?:Weighted variance
     Assign pixels in the middle intensity class to the foreground or the background?:Foreground
 
-FlagImage:[module_num:3|svn_version:'Unknown'|variable_revision_number:5|show_window:False|notes:[]|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
-    Hidden:2
-    Hidden:5
-    Name the flag's category:Metadata
-    Name the flag:Is_BlurryQC
-    How should measurements be linked?:Flag if any fail
-    Skip image set if flagged?:Yes
-    Flag is based on:Whole-image measurement
-    Select the object to be used for flagging:None
-    Which measurement?:ImageQuality_PowerLogLogSlope_OrigDNA
-    Flag images based on low values?:Yes
-    Minimum value:-2.428470280380828
-    Flag images based on high values?:No
-    Maximum value:1.0
-    Rules file location:Elsewhere...|
-    Rules file name:rules.txt
-    Class number:
-    Allow fuzzy feature matching?:No
-    Flag is based on:Whole-image measurement
-    Select the object to be used for flagging:None
-    Which measurement?:ImageQuality_PowerLogLogSlope_OrigER
-    Flag images based on low values?:Yes
-    Minimum value:-2.802905739591965
-    Flag images based on high values?:No
-    Maximum value:1.0
-    Rules file location:Elsewhere...|
-    Rules file name:rules.txt
-    Class number:
-    Allow fuzzy feature matching?:No
-    Flag is based on:Whole-image measurement
-    Select the object to be used for flagging:None
-    Which measurement?:ImageQuality_PowerLogLogSlope_OrigRNA
-    Flag images based on low values?:Yes
-    Minimum value:-2.839942062616649
-    Flag images based on high values?:No
-    Maximum value:1.0
-    Rules file location:Elsewhere...|
-    Rules file name:rules.txt
-    Class number:
-    Allow fuzzy feature matching?:No
-    Flag is based on:Whole-image measurement
-    Select the object to be used for flagging:None
-    Which measurement?:ImageQuality_PowerLogLogSlope_OrigMito
-    Flag images based on low values?:Yes
-    Minimum value:-2.6501132077265317
-    Flag images based on high values?:No
-    Maximum value:1.0
-    Rules file location:Elsewhere...|
-    Rules file name:rules.txt
-    Class number:
-    Allow fuzzy feature matching?:No
-    Flag is based on:Whole-image measurement
-    Select the object to be used for flagging:None
-    Which measurement?:ImageQuality_PowerLogLogSlope_OrigAGP
-    Flag images based on low values?:Yes
-    Minimum value:-2.61369899702188
-    Flag images based on high values?:No
-    Maximum value:1.0
-    Rules file location:Elsewhere...|
-    Rules file name:rules.txt
-    Class number:
-    Allow fuzzy feature matching?:No
+FlagImage:[module_num:3|svn_version:'Unknown'|variable_revision_number:5|show_window:False|notes:['Only run percent maximal for flagging in CellProfiler as it most impacts IC and we will remove images for blur downstream.']|batch_state:array([], dtype=uint8)|enabled:True|wants_pause:False]
+    Hidden:1
     Hidden:5
     Name the flag's category:Metadata
     Name the flag:Is_SaturatedQC
@@ -106,7 +46,7 @@ FlagImage:[module_num:3|svn_version:'Unknown'|variable_revision_number:5|show_wi
     Select the object to be used for flagging:None
     Which measurement?:ImageQuality_PercentMaximal_OrigDNA
     Flag images based on low values?:No
-    Minimum value:0.0
+    Minimum value:-2.428470280380828
     Flag images based on high values?:Yes
     Maximum value:1.0
     Rules file location:Elsewhere...|
@@ -117,18 +57,7 @@ FlagImage:[module_num:3|svn_version:'Unknown'|variable_revision_number:5|show_wi
     Select the object to be used for flagging:None
     Which measurement?:ImageQuality_PercentMaximal_OrigER
     Flag images based on low values?:No
-    Minimum value:0.0
-    Flag images based on high values?:Yes
-    Maximum value:1.0
-    Rules file location:Elsewhere...|
-    Rules file name:rules.txt
-    Class number:
-    Allow fuzzy feature matching?:No
-    Flag is based on:Whole-image measurement
-    Select the object to be used for flagging:None
-    Which measurement?:ImageQuality_PercentMaximal_OrigMito
-    Flag images based on low values?:No
-    Minimum value:0.0
+    Minimum value:
     Flag images based on high values?:Yes
     Maximum value:1.0
     Rules file location:Elsewhere...|
@@ -139,7 +68,18 @@ FlagImage:[module_num:3|svn_version:'Unknown'|variable_revision_number:5|show_wi
     Select the object to be used for flagging:None
     Which measurement?:ImageQuality_PercentMaximal_OrigRNA
     Flag images based on low values?:No
-    Minimum value:0.0
+    Minimum value:-2.839942062616649
+    Flag images based on high values?:Yes
+    Maximum value:1.0
+    Rules file location:Elsewhere...|
+    Rules file name:rules.txt
+    Class number:
+    Allow fuzzy feature matching?:No
+    Flag is based on:Whole-image measurement
+    Select the object to be used for flagging:None
+    Which measurement?:ImageQuality_PercentMaximal_OrigMito
+    Flag images based on low values?:No
+    Minimum value:-2.6501132077265317
     Flag images based on high values?:Yes
     Maximum value:1.0
     Rules file location:Elsewhere...|
