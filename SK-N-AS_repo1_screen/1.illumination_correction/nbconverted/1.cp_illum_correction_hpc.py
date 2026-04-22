@@ -86,7 +86,7 @@ plate_info_dictionary = {
 pprint.pprint(plate_info_dictionary, indent=4)
 
 
-# ## Perform segmentation and feature extraction (analysis)
+# ## Perform illumination correction with CellProfiler
 # 
 # Note: This code cell was not ran as we prefer to perform CellProfiler processing tasks via `sh` file (bash script) which is more stable.
 
