@@ -86,6 +86,8 @@ def run_cellprofiler_parallel(
                 path_to_output,
                 "--data-file",
                 path_to_loaddata,
+                "--conserve-memory", # Add conserve memory flag
+                "True"
             ]
         else:
             # assign path to images as variable
@@ -107,6 +109,8 @@ def run_cellprofiler_parallel(
                 path_to_output,
                 "-i",
                 path_to_images,
+                "--conserve-memory", # Add conserve memory flag
+                "True"
             ]
 
         # Append the commands for as many plates being processed
