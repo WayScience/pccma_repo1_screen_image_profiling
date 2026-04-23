@@ -27,7 +27,7 @@ except NameError:
 
 # ## Set paths and variables
 
-# In[ ]:
+# In[2]:
 
 
 # directory where loaddata CSVs are located within the folder
@@ -50,7 +50,7 @@ if not in_notebook:
     loaddata_csv = pathlib.Path(args.input_csv).resolve(strict=True)
 else:
     print("Running in a notebook")
-    loaddata_csv = pathlib.Path(f"{loaddata_dir}/BR00149356_loaddata.csv").resolve(
+    loaddata_csv = pathlib.Path(f"{loaddata_dir}/BR00149332_loaddata.csv").resolve(
         strict=True
     )
 
@@ -70,8 +70,10 @@ output_dir.mkdir(exist_ok=True)
 # In[3]:
 
 
-# Extract name from LoadData CSV path
-name = loaddata_csv.stem.split("_")[0]
+# Extract name from LoadData CSV path (drop loaddata suffix to avoid issues getting plate name)
+name = loaddata_csv.stem
+if name.endswith("_loaddata"):
+    name = name[: -len("_loaddata")]
 
 # create plate info dictionary with all parts of the CellProfiler CLI command to run in parallel
 plate_info_dictionary = {
