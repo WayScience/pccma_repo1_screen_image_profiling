@@ -36,29 +36,35 @@ except NameError:
 # In[2]:
 
 
-if not in_notebook:
-    print("Running as script")
-    # set up arg parser
-    parser = argparse.ArgumentParser(
-        description="Generate LoadData CSV file for CellProfiler from a given input CSV containing image paths and metadata"
-    )
+argparse = argparse.ArgumentParser(
+    description="Create LoadData CSV files to run CellProfiler on the cluster"
+)
+argparse.add_argument("--HPC", action="store_true", help="Type of compute to run on")
 
-    parser.add_argument(
-        "--index_directory",
-        type=str,
-        help="Path to the directory containing image folders",
-    )
+# Parse arguments
+args = argparse.parse_args(args=sys.argv[1:] if "ipykernel" not in sys.argv[0] else [])
+HPC = args.HPC
 
-    args = parser.parse_args()
-    index_directory = pathlib.Path(args.index_directory).resolve(strict=True)
+print(f"HPC: {HPC}")
+
+
+# In[3]:
+
+
+# Set the index directory based on whether HPC is used or not
+if HPC:
+    # Path for index directory to make loaddata csvs though compute cluster (HPC)
+    index_directory = pathlib.Path(
+        "/scratch/alpine/jtomkinson@xsede.org/ALSF_screen_data/CHP-134_repo1_screen"
+    )
 else:
-    print("Running in a notebook")
-    # Set the root directory and image base directory for notebook execution
+    # Find root directory of the project
     root_dir = pathlib.Path().resolve()
 
     image_base_dir = bandicoot_check(
         pathlib.Path(os.path.expanduser("~/mnt/bandicoot")).resolve(), root_dir
     )
+    # Path for index directory  to make loaddata csv locally
     index_directory = pathlib.Path(
         f"{image_base_dir}/PCCMA_data/CHP-134_repo1_screen/"
     ).resolve(strict=True)
@@ -89,7 +95,7 @@ print(
 
 # ## Create LoadData CSVs for all data
 
-# In[3]:
+# In[4]:
 
 
 # Define the one config path to use

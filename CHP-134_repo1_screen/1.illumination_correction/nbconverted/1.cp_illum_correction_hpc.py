@@ -27,7 +27,7 @@ except NameError:
 
 # ## Set paths and variables
 
-# In[2]:
+# In[ ]:
 
 
 # directory where loaddata CSVs are located within the folder
@@ -37,7 +37,7 @@ if not in_notebook:
     print("Running as script")
     # set up arg parser
     parser = argparse.ArgumentParser(
-        description="CellProfiler illumination correction for SK-N-AS REPO1 screen"
+        description="CellProfiler illumination correction for CHP-134 REPO1 screen"
     )
 
     parser.add_argument(
