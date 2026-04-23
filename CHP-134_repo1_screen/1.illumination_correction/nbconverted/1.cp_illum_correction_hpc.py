@@ -50,7 +50,7 @@ if not in_notebook:
     loaddata_csv = pathlib.Path(args.input_csv).resolve(strict=True)
 else:
     print("Running in a notebook")
-    loaddata_csv = pathlib.Path(f"{loaddata_dir}/BR00148919_loaddata.csv").resolve(
+    loaddata_csv = pathlib.Path(f"{loaddata_dir}/BR00149356_loaddata.csv").resolve(
         strict=True
     )
 

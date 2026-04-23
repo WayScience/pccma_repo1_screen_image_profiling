@@ -1,0 +1,33 @@
+# This is the configuration file for all plates.
+channels:
+    Brightfield high: OrigBrightfield
+    Alexa 488: OrigER
+    Alexa 568: OrigAGP
+    Alexa 647: OrigMito
+    HOECHST 33342: OrigDNA
+    Alexa 488 Long (CP): OrigRNA
+
+metadata:
+    Row: Row
+    Col: Col
+    FieldID: FieldID
+    PlaneID: PlaneID
+    ChannelID: ChannelID
+    ChannelName: ChannelName
+    ImageResolutionX: ImageResolutionX
+    ImageResolutionY: ImageResolutionY
+    ImageSizeX: ImageSizeX
+    ImageSizeY: ImageSizeY
+    BinningX: BinningX
+    BinningY: BinningY
+    MaxIntensity: MaxIntensity
+    PositionX: PositionX
+    PositionY: PositionY
+    PositionZ: PositionZ
+    AbsPositionZ: AbsPositionZ
+    AbsTime: AbsTime
+    MainExcitationWavelength: MainExcitationWavelength
+    MainEmissionWavelength: MainEmissionWavelength
+    ObjectiveMagnification: ObjectiveMagnification
+    ObjectiveNA: ObjectiveNA
+    ExposureTime: ExposureTime

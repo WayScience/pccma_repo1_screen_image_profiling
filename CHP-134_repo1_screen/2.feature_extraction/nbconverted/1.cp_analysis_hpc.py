@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # Perform illumination correction using CellProfiler via HPC
+# # Perform segmentation and feature extraction using CellProfiler
 
 # ## Import libraries
 
@@ -27,41 +27,47 @@ except NameError:
 
 # ## Set paths and variables
 
-# In[2]:
+# In[ ]:
 
 
-# directory where loaddata CSVs are located within the folder
-loaddata_dir = pathlib.Path("./loaddata_csvs").resolve(strict=True)
+#  directory where loaddata CSVs are located within the folder
+loaddata_dir = pathlib.Path("./loaddata_csvs/").resolve(strict=True)
 
 if not in_notebook:
     print("Running as script")
-    # set up arg parser
+
     parser = argparse.ArgumentParser(
-        description="CellProfiler illumination correction for SK-N-AS REPO1 screen"
+        description="CellProfiler segmentation and feature extraction"
     )
 
     parser.add_argument(
         "--input_csv",
         type=str,
+        required=True,
         help="Path to the LoadData CSV file to process images",
     )
 
     args = parser.parse_args()
+
     loaddata_csv = pathlib.Path(args.input_csv).resolve(strict=True)
+
 else:
     print("Running in a notebook")
-    loaddata_csv = pathlib.Path(f"{loaddata_dir}/BR00148919_loaddata.csv").resolve(
-        strict=True
-    )
+
+    loaddata_csv = pathlib.Path(
+        f"{loaddata_dir}/BR00148919_loaddata_with_illum.csv"
+    ).resolve(strict=True)
 
 # set the run type for the parallelization
-run_name = "illumination_correction"
+run_name = "analysis"
 
 # set path for CellProfiler pipeline
-path_to_pipeline = pathlib.Path("./pipeline/illum.cppipe").resolve(strict=True)
+path_to_pipeline = pathlib.Path("./pipeline/analysis_CHP-134.cppipe").resolve(
+    strict=True
+)
 
 # set main output dir for all plates if it doesn't exist
-output_dir = pathlib.Path("./illum_directory")
+output_dir = pathlib.Path("./sqlite_outputs")
 output_dir.mkdir(exist_ok=True)
 
 
@@ -86,7 +92,7 @@ plate_info_dictionary = {
 pprint.pprint(plate_info_dictionary, indent=4)
 
 
-# ## Perform illumination correction with CellProfiler
+# ## Perform segmentation and feature extraction (analysis)
 # 
 # Note: This code cell was not ran as we prefer to perform CellProfiler processing tasks via `sh` file (bash script) which is more stable.
 
