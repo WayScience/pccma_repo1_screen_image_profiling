@@ -2,6 +2,8 @@
 # coding: utf-8
 
 # # Perform segmentation and feature extraction using CellProfiler
+# 
+# NOTE: Plates with IDs that have spaces will still have spaces in the paths but the respective LoadData CSV with illum function paths will not have spaces due to `pe2loaddata` bug. This means that the LoadData from the previous IC module will be different (includes space).
 
 # ## Import libraries
 
@@ -27,7 +29,7 @@ except NameError:
 
 # ## Set paths and variables
 
-# In[ ]:
+# In[2]:
 
 
 #  directory where loaddata CSVs are located within the folder
@@ -55,14 +57,14 @@ else:
     print("Running in a notebook")
 
     loaddata_csv = pathlib.Path(
-        f"{loaddata_dir}/BR00148919_loaddata_with_illum.csv"
+        f"{loaddata_dir}/Assay_Plate_1_3_loaddata_with_illum.csv"
     ).resolve(strict=True)
 
 # set the run type for the parallelization
 run_name = "analysis"
 
 # set path for CellProfiler pipeline
-path_to_pipeline = pathlib.Path("./pipeline/analysis_CHP-134.cppipe").resolve(
+path_to_pipeline = pathlib.Path("./pipeline/analysis_CHP134.cppipe").resolve(
     strict=True
 )
 
@@ -76,8 +78,10 @@ output_dir.mkdir(exist_ok=True)
 # In[3]:
 
 
-# Extract name from LoadData CSV path
-name = loaddata_csv.stem.split("_")[0]
+# Extract name from LoadData CSV path (drop loaddata suffix to avoid issues getting plate name)
+name = loaddata_csv.stem
+if name.endswith("_loaddata_with_illum"):
+    name = name[: -len("_loaddata_with_illum")]
 
 # create plate info dictionary with all parts of the CellProfiler CLI command to run in parallel
 plate_info_dictionary = {
