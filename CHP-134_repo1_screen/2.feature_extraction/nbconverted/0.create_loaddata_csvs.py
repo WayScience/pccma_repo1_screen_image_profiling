@@ -7,7 +7,7 @@
 
 # ## Import libraries
 
-# In[ ]:
+# In[1]:
 
 
 import argparse
@@ -32,7 +32,7 @@ except NameError:
 
 # ## Set paths
 
-# In[ ]:
+# In[2]:
 
 
 parser = argparse.ArgumentParser(
@@ -94,7 +94,7 @@ print(
 
 # ## Create LoadData CSVs with illumination functions for all data
 
-# In[ ]:
+# In[3]:
 
 
 # Define the one config path to use
@@ -140,13 +140,25 @@ for subfolder in plate_folders:
         )
         continue
 
-    # Create output paths for the temporary original CSV and final illum CSV
+    # ---------------------------------------------------------------------------------------------
+    # FIX: filesystem-safe name for pe2loaddata ONLY (for non-conventional plate names with spaces)
+    # ---------------------------------------------------------------------------------------------
+    # Create a filesystem-safe version (without space) to avoid issues
+    safe_plate_name = plate_name.replace(" ", "_")
+
+    # Create output paths
     path_to_output_csv = (
-        output_csv_dir / f"{plate_name}_loaddata_original.csv"
+        output_csv_dir / f"{safe_plate_name}_loaddata_original.csv"
     ).absolute()
+
+    # LoadData CSV output name will not have spaces to avoid issues,
+    # but paths to images will still have spaces if present
     path_to_output_with_illum_csv = (
-        output_csv_dir / f"{plate_name}_loaddata_with_illum.csv"
+        output_csv_dir / f"{safe_plate_name}_loaddata_with_illum.csv"
     ).absolute()
+
+    # Must use the original plate name (with spaces if present) for the illumination output path
+    # to ensure metadata correctness in the final CSV
     illum_output_path = (illum_directory / plate_name).absolute().resolve(strict=True)
 
     # Run loaddata creation with illumination correction functions
@@ -155,7 +167,7 @@ for subfolder in plate_folders:
         config_path=config_path,
         path_to_output=path_to_output_csv,
         illum_directory=illum_output_path,
-        plate_id=plate_name,
+        plate_id=plate_name,  # keep ORIGINAL (important for metadata correctness)
         illum_output_path=path_to_output_with_illum_csv,
     )
 
