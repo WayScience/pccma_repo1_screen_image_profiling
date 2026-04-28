@@ -64,7 +64,7 @@ else:
 run_name = "analysis"
 
 # set path for CellProfiler pipeline
-path_to_pipeline = pathlib.Path("./pipeline/analysis_CHP134.cppipe").resolve(
+path_to_pipeline = pathlib.Path("./pipeline/analysis_CHP-134.cppipe").resolve(
     strict=True
 )
 
