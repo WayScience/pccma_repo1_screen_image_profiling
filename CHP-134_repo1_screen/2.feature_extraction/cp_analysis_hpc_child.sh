@@ -1,37 +1,49 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --mem=22G
+#SBATCH --mem=6G
 #SBATCH --partition=amilan
-#SBATCH --qos=long
+#SBATCH --qos=normal
 #SBATCH --account=amc-general
-#SBATCH --time=7-00:00:00
+#SBATCH --time=10:00:00
 #SBATCH --output=run_CP_child-%j.out
 
 # 1 task at 22GB RAM for the core (adjust as needed)
 
 # Each well/fov (image-sets) needs about 2 GB of RAM, it fails at 10 GB after approximately 2,313 image sets.
 # (about at well K18 per plate)
-# We used all 384 wells of the plate with 9 FOVs each plate, so K18 is approximately 2,313 image sets 
-# (384 wells x 6 fovs per well = 2,304 image sets, so K18 is the next one after that).
-# The 8 extra GB is for memory leakage and overhead, which we calculated from 8 GB of excess divided by 2,313 image sets, 
-# which is approximately 3.5 MB per image set.
-# Over the total image sets we expect (384 wells x 9 FOVs = 3,456 image sets), we would need about 12 GB of RAM to run the entire plate without crashing
-# plus 2 GB to run CellProfiler.
-# I am requesting 22 GB of RAM to be safe, in case of underestimation.
+# When running at a row-batch level, we are processing 24 wells with 216 image sets (9 FOVs per well)
+# which we estimate would need potentially a maximum of 4 GB of RAM 
+# (216 image sets x 3.5 MB per image set = 756 MB, plus 2 GB for CellProfiler, plus overhead).
+# I am requesting 6 GB of RAM at 10 hours to be safe, in case of underestimation.
 
 # activate cellprofiler environment
 module load miniforge
 conda init bash
 conda activate pccma_repo1_cp_env
 
-# input csv  passed as first argument
+# input csv and optional row batch range passed as arguments
 csv=$1
+first_image_set=$2
+last_image_set=$3
+batch_label=$4
 
 # run your python analysis script with the input csv
-python nbconverted/1.cp_analysis_hpc.py --input_csv "$csv"
+command=(python nbconverted/1.cp_analysis_hpc.py --input_csv "$csv")
+
+if [ -n "$first_image_set" ]; then
+    command+=(--first_image_set "$first_image_set")
+fi
+if [ -n "$last_image_set" ]; then
+    command+=(--last_image_set "$last_image_set")
+fi
+if [ -n "$batch_label" ]; then
+    command+=(--batch_label "$batch_label")
+fi
+
+"${command[@]}"
 
 # deactivate conda environment
 conda deactivate
 
-echo "CellProfiler analysis done for directory: $csv"
+echo "CellProfiler analysis done for directory: $csv ($batch_label)"

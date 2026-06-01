@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+
 # # Create LoadData CSVs with the paths to IC functions for analysis
 # 
 # In this notebook, we create LoadData CSVs that contains paths to each channel per image set and associated illumination correction `npy` files per channel for CellProfiler to process. 
-
 # ## Import libraries
-
 # In[1]:
 
 
@@ -29,9 +28,7 @@ try:
 except NameError:
     in_notebook = False
 
-
 # ## Set paths
-
 # In[2]:
 
 
@@ -72,6 +69,7 @@ output_csv_dir.mkdir(parents=True, exist_ok=True)
 illum_directory = pathlib.Path("../1.illumination_correction/illum_directory/").resolve(
     strict=True
 )
+row_batch_manifest_path = pathlib.Path("./row_batch_manifest.csv").absolute()
 
 # Recursively find Images folders and print how many plates we are working with
 images_folders = []
@@ -91,9 +89,7 @@ print(
     f"Nested plate folders in subdirectories such as reimaged data: {len(nested_plate_folders)}"
 )
 
-
 # ## Create LoadData CSVs with illumination functions for all data
-
 # In[3]:
 
 
@@ -101,6 +97,71 @@ print(
 config_path = config_dir_path / "config.yml"
 
 EXPECTED_ROWS = 3456
+EXPECTED_PLATE_ROWS = list("ABCDEFGHIJKLMNOP")
+csv_paths = []
+
+
+def plate_name_from_csv(path):
+    name = path.stem
+    suffix = "_loaddata_with_illum"
+    return name[: -len(suffix)] if name.endswith(suffix) else name
+
+
+def create_row_batch_manifest(csv_paths, output_path):
+    records = []
+
+    for csv_path in csv_paths:
+        df = pd.read_csv(csv_path)
+        df["image_set_number"] = range(1, len(df) + 1)
+        df["plate_row"] = df["Metadata_Well"].str.extract(r"^([A-Za-z]+)")[0].str.upper()
+
+        for plate_row in EXPECTED_PLATE_ROWS:
+            row_df = df[df["plate_row"] == plate_row]
+            if row_df.empty:
+                records.append(
+                    {
+                        "plate": plate_name_from_csv(csv_path),
+                        "row": plate_row,
+                        "batch_label": f"row_{plate_row}",
+                        "loaddata_csv": csv_path.resolve(),
+                        "first_image_set": "",
+                        "last_image_set": "",
+                        "image_set_count": 0,
+                        "well_count": 0,
+                        "is_contiguous": False,
+                        "status": "missing_row",
+                        "message": "No image sets found for this plate row",
+                    }
+                )
+                continue
+
+            first_image_set = int(row_df["image_set_number"].min())
+            last_image_set = int(row_df["image_set_number"].max())
+            image_set_count = len(row_df)
+            is_contiguous = image_set_count == last_image_set - first_image_set + 1
+
+            records.append(
+                {
+                    "plate": plate_name_from_csv(csv_path),
+                    "row": plate_row,
+                    "batch_label": f"row_{plate_row}",
+                    "loaddata_csv": csv_path.resolve(),
+                    "first_image_set": first_image_set,
+                    "last_image_set": last_image_set,
+                    "image_set_count": image_set_count,
+                    "well_count": row_df["Metadata_Well"].nunique(),
+                    "is_contiguous": is_contiguous,
+                    "status": "ready" if is_contiguous else "skip_noncontiguous",
+                    "message": "" if is_contiguous else "Image sets for this row are not contiguous",
+                }
+            )
+
+    manifest_df = pd.DataFrame(records)
+    manifest_df.to_csv(output_path, index=False)
+    ready = (manifest_df["status"] == "ready").sum()
+    skipped = (manifest_df["status"] != "ready").sum()
+    print(f"Wrote {output_path} with {ready} ready row batches and {skipped} warnings")
+
 
 # Iterate over every discovered plate folder, including nested reimaged-data plates
 for subfolder in plate_folders:
@@ -180,6 +241,7 @@ for subfolder in plate_folders:
     try:
         df = pd.read_csv(path_to_output_with_illum_csv)
         row_count = len(df)
+        csv_paths.append(path_to_output_with_illum_csv)
 
         if row_count != EXPECTED_ROWS:
             print(
@@ -192,3 +254,5 @@ for subfolder in plate_folders:
     except Exception as e:
         print(f"Error reading CSV for {plate_name}: {e}")
 
+if csv_paths:
+    create_row_batch_manifest(csv_paths, row_batch_manifest_path)
