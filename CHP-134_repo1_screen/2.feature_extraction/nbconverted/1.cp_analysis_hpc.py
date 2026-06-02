@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-
 # # Perform segmentation and feature extraction using CellProfiler
 # 
 # NOTE: Plates with IDs that have spaces will still have spaces in the paths but the respective LoadData CSV with illum function paths will not have spaces due to `pe2loaddata` bug. This means that the LoadData from the previous IC module will be different (includes space).
+
 # ## Import libraries
+
 # In[1]:
 
 
@@ -25,7 +26,9 @@ try:
 except NameError:
     in_notebook = False
 
+
 # ## Set paths and variables
+
 # In[2]:
 
 
@@ -93,8 +96,10 @@ path_to_pipeline = pathlib.Path("./pipeline/analysis_CHP-134.cppipe").resolve(
 output_dir = pathlib.Path("./sqlite_outputs")
 output_dir.mkdir(exist_ok=True)
 
+
 # ## Create dictionary to process data
-# In[3]:
+
+# In[ ]:
 
 
 # Extract name from LoadData CSV path (drop loaddata suffix to avoid issues getting plate name)
@@ -104,6 +109,7 @@ if name.endswith("_loaddata_with_illum"):
 
 path_to_output = output_dir / name
 if batch_label:
+    # if batch label is provided, add it to the output path to keep batches separate per plate
     path_to_output = path_to_output / batch_label
 
 # create plate info dictionary with all parts of the CellProfiler CLI command to run in parallel
@@ -123,12 +129,15 @@ if last_image_set is not None:
 # view the dictionary to assess that all info is added correctly
 pprint.pprint(plate_info_dictionary, indent=4)
 
+
 # ## Perform segmentation and feature extraction (analysis)
 # 
 # Note: This code cell was not ran as we prefer to perform CellProfiler processing tasks via `sh` file (bash script) which is more stable.
+
 # In[4]:
 
 
 cp_parallel.run_cellprofiler_parallel(
     plate_info_dictionary=plate_info_dictionary, run_name=run_name
 )
+

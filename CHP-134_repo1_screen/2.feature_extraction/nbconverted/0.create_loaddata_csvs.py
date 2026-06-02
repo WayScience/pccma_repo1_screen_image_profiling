@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-
 # # Create LoadData CSVs with the paths to IC functions for analysis
 # 
 # In this notebook, we create LoadData CSVs that contains paths to each channel per image set and associated illumination correction `npy` files per channel for CellProfiler to process. 
+
 # ## Import libraries
+
 # In[1]:
 
 
@@ -28,8 +29,107 @@ try:
 except NameError:
     in_notebook = False
 
+
+# ## Set helper functions
+
+# In[ ]:
+
+
+# Set expected values for validation for generating manifest of row batches
+EXPECTED_ROWS = 3456
+EXPECTED_PLATE_ROWS = list("ABCDEFGHIJKLMNOP")
+
+
+def plate_name_from_csv(path: pathlib.Path) -> str:
+    """Collect name of the plate from the CSV file name.
+
+    Args:
+        path (pathlib.Path)): Path to the CSV file.
+
+    Returns:
+        str: Name of the plate.
+    """
+    name = path.stem
+    suffix = "_loaddata_with_illum"
+    return name[: -len(suffix)] if name.endswith(suffix) else name
+
+
+def create_row_batch_manifest(csv_paths: list[pathlib.Path], output_path: pathlib.Path) -> pd.DataFrame:
+    """Create a manifest CSV file that splits plates into batches per well-row for HPC processing.
+
+    Args:
+        csv_paths (list[pathlib.Path]): List of paths to the CSV files.
+        output_path (pathlib.Path): Path to the output manifest CSV file.
+
+    Returns:
+        pd.DataFrame: DataFrame containing the manifest of row batches.
+    """
+    records = []
+
+    for csv_path in csv_paths:
+        df = pd.read_csv(csv_path)
+        df["image_set_number"] = range(1, len(df) + 1)
+        df["plate_row"] = (
+            df["Metadata_Well"].str.extract(r"^([A-Za-z]+)")[0].str.upper()
+        )
+
+        for plate_row in EXPECTED_PLATE_ROWS:
+            row_df = df[df["plate_row"] == plate_row]
+            if row_df.empty:
+                records.append(
+                    {
+                        "plate": plate_name_from_csv(csv_path),
+                        "row": plate_row,
+                        "batch_label": f"row_{plate_row}",
+                        "loaddata_csv": csv_path.resolve(),
+                        "first_image_set": "",
+                        "last_image_set": "",
+                        "image_set_count": 0,
+                        "well_count": 0,
+                        "is_contiguous": False,
+                        "status": "missing_row",
+                        "message": "No image sets found for this plate row",
+                    }
+                )
+                continue
+
+            first_image_set = int(row_df["image_set_number"].min())
+            last_image_set = int(row_df["image_set_number"].max())
+            image_set_count = len(row_df)
+            is_contiguous = image_set_count == last_image_set - first_image_set + 1
+
+            records.append(
+                {
+                    "plate": plate_name_from_csv(csv_path),
+                    "row": plate_row,
+                    "batch_label": f"row_{plate_row}",
+                    "loaddata_csv": csv_path.resolve(),
+                    "first_image_set": first_image_set,
+                    "last_image_set": last_image_set,
+                    "image_set_count": image_set_count,
+                    "well_count": row_df["Metadata_Well"].nunique(),
+                    "is_contiguous": is_contiguous,
+                    "status": "ready" if is_contiguous else "skip_noncontiguous",
+                    "message": (
+                        ""
+                        if is_contiguous
+                        else "Image sets for this row are not contiguous"
+                    ),
+                }
+            )
+
+    manifest_df = pd.DataFrame(records)
+    manifest_df.to_csv(output_path, index=False)
+    ready = (manifest_df["status"] == "ready").sum()
+    skipped = (manifest_df["status"] != "ready").sum()
+    print(f"Wrote {output_path} with {ready} ready row batches and {skipped} warnings")
+
+    return manifest_df
+
+
 # ## Set paths
-# In[2]:
+
+# In[3]:
 
 
 parser = argparse.ArgumentParser(
@@ -89,78 +189,16 @@ print(
     f"Nested plate folders in subdirectories such as reimaged data: {len(nested_plate_folders)}"
 )
 
+
 # ## Create LoadData CSVs with illumination functions for all data
-# In[3]:
+
+# In[4]:
 
 
 # Define the one config path to use
 config_path = config_dir_path / "config.yml"
-
-EXPECTED_ROWS = 3456
-EXPECTED_PLATE_ROWS = list("ABCDEFGHIJKLMNOP")
+# Initialize list to keep track of generated CSV paths for manifest creation
 csv_paths = []
-
-
-def plate_name_from_csv(path):
-    name = path.stem
-    suffix = "_loaddata_with_illum"
-    return name[: -len(suffix)] if name.endswith(suffix) else name
-
-
-def create_row_batch_manifest(csv_paths, output_path):
-    records = []
-
-    for csv_path in csv_paths:
-        df = pd.read_csv(csv_path)
-        df["image_set_number"] = range(1, len(df) + 1)
-        df["plate_row"] = df["Metadata_Well"].str.extract(r"^([A-Za-z]+)")[0].str.upper()
-
-        for plate_row in EXPECTED_PLATE_ROWS:
-            row_df = df[df["plate_row"] == plate_row]
-            if row_df.empty:
-                records.append(
-                    {
-                        "plate": plate_name_from_csv(csv_path),
-                        "row": plate_row,
-                        "batch_label": f"row_{plate_row}",
-                        "loaddata_csv": csv_path.resolve(),
-                        "first_image_set": "",
-                        "last_image_set": "",
-                        "image_set_count": 0,
-                        "well_count": 0,
-                        "is_contiguous": False,
-                        "status": "missing_row",
-                        "message": "No image sets found for this plate row",
-                    }
-                )
-                continue
-
-            first_image_set = int(row_df["image_set_number"].min())
-            last_image_set = int(row_df["image_set_number"].max())
-            image_set_count = len(row_df)
-            is_contiguous = image_set_count == last_image_set - first_image_set + 1
-
-            records.append(
-                {
-                    "plate": plate_name_from_csv(csv_path),
-                    "row": plate_row,
-                    "batch_label": f"row_{plate_row}",
-                    "loaddata_csv": csv_path.resolve(),
-                    "first_image_set": first_image_set,
-                    "last_image_set": last_image_set,
-                    "image_set_count": image_set_count,
-                    "well_count": row_df["Metadata_Well"].nunique(),
-                    "is_contiguous": is_contiguous,
-                    "status": "ready" if is_contiguous else "skip_noncontiguous",
-                    "message": "" if is_contiguous else "Image sets for this row are not contiguous",
-                }
-            )
-
-    manifest_df = pd.DataFrame(records)
-    manifest_df.to_csv(output_path, index=False)
-    ready = (manifest_df["status"] == "ready").sum()
-    skipped = (manifest_df["status"] != "ready").sum()
-    print(f"Wrote {output_path} with {ready} ready row batches and {skipped} warnings")
 
 
 # Iterate over every discovered plate folder, including nested reimaged-data plates
@@ -256,3 +294,4 @@ for subfolder in plate_folders:
 
 if csv_paths:
     create_row_batch_manifest(csv_paths, row_batch_manifest_path)
+

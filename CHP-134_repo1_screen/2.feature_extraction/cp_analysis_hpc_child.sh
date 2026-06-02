@@ -8,7 +8,7 @@
 #SBATCH --time=10:00:00
 #SBATCH --output=run_CP_child-%j.out
 
-# 1 task at 22GB RAM for the core (adjust as needed)
+# 1 task at 6 GB RAM to run row-level batches on HPC.
 
 # Each well/fov (image-sets) needs about 2 GB of RAM, it fails at 10 GB after approximately 2,313 image sets.
 # (about at well K18 per plate)
