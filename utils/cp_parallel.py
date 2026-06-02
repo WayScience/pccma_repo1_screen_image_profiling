@@ -12,6 +12,14 @@ from typing import List
 from errors.exceptions import MaxWorkerError
 
 
+def _run_log_name(output_path: pathlib.Path) -> str:
+    if output_path.parent.name == "sqlite_outputs":
+        return output_path.name
+    if output_path.parent.parent.name == "sqlite_outputs":
+        return f"{output_path.parent.name}_{output_path.name}"
+    return output_path.name
+
+
 def results_to_log(
     results: List[subprocess.CompletedProcess], log_dir: pathlib.Path, run_name: str
 ) -> None:
@@ -27,8 +35,8 @@ def results_to_log(
     # Create a logger instance specific to this run name
     log_dir.mkdir(parents=True, exist_ok=True)
     for result in results:
-        plate_name = result.args[6].name
-        log_path = log_dir / f"{plate_name}_{run_name}_run.log"
+        log_name = _run_log_name(result.args[6])
+        log_path = log_dir / f"{log_name}_{run_name}_run.log"
         with open(log_path, "w") as f:
             f.write(result.stderr.decode("utf-8"))
 
@@ -62,7 +70,7 @@ def run_cellprofiler_parallel(
         path_to_output = info["path_to_output"]
 
         # make output directory if it is not already created
-        pathlib.Path(path_to_output).mkdir(exist_ok=True)
+        pathlib.Path(path_to_output).mkdir(parents=True, exist_ok=True)
 
         # check to make sure paths to pipeline are correct before running the pipeline
         if not pathlib.Path(path_to_pipeline).resolve(strict=True):
@@ -86,9 +94,13 @@ def run_cellprofiler_parallel(
                 path_to_output,
                 "--data-file",
                 path_to_loaddata,
-                "--conserve-memory", # Add conserve memory flag
-                "True"
+                "--conserve-memory",  # Add conserve memory flag
+                "True",
             ]
+            if "first_image_set" in info:
+                command.extend(["-f", str(info["first_image_set"])])
+            if "last_image_set" in info:
+                command.extend(["-l", str(info["last_image_set"])])
         else:
             # assign path to images as variable
             path_to_images = info["path_to_images"]
@@ -109,8 +121,8 @@ def run_cellprofiler_parallel(
                 path_to_output,
                 "-i",
                 path_to_images,
-                "--conserve-memory", # Add conserve memory flag
-                "True"
+                "--conserve-memory",  # Add conserve memory flag
+                "True",
             ]
 
         # Append the commands for as many plates being processed
@@ -147,7 +159,7 @@ def run_cellprofiler_parallel(
     for result in results:
         results_to_log(results=[result], log_dir=log_dir, run_name=run_name)
         try:
-            plate_name = result.args[6].name
+            plate_name = _run_log_name(result.args[6])
         except Exception:
             plate_name = "unknown_plate"
         if result.returncode == 1:

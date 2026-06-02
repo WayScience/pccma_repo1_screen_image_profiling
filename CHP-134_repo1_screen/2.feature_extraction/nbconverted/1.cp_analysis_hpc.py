@@ -48,10 +48,31 @@ if not in_notebook:
         required=True,
         help="Path to the LoadData CSV file to process images",
     )
+    parser.add_argument(
+        "--first_image_set",
+        type=int,
+        required=False,
+        help="First CellProfiler image set to process",
+    )
+    parser.add_argument(
+        "--last_image_set",
+        type=int,
+        required=False,
+        help="Last CellProfiler image set to process",
+    )
+    parser.add_argument(
+        "--batch_label",
+        type=str,
+        required=False,
+        help="Label for a row batch, e.g. row_A",
+    )
 
     args = parser.parse_args()
 
     loaddata_csv = pathlib.Path(args.input_csv).resolve(strict=True)
+    first_image_set = args.first_image_set
+    last_image_set = args.last_image_set
+    batch_label = args.batch_label
 
 else:
     print("Running in a notebook")
@@ -59,6 +80,9 @@ else:
     loaddata_csv = pathlib.Path(
         f"{loaddata_dir}/Assay_Plate_1_3_loaddata_with_illum.csv"
     ).resolve(strict=True)
+    first_image_set = None
+    last_image_set = None
+    batch_label = None
 
 # set the run type for the parallelization
 run_name = "analysis"
@@ -75,7 +99,7 @@ output_dir.mkdir(exist_ok=True)
 
 # ## Create dictionary to process data
 
-# In[3]:
+# In[ ]:
 
 
 # Extract name from LoadData CSV path (drop loaddata suffix to avoid issues getting plate name)
@@ -83,14 +107,24 @@ name = loaddata_csv.stem
 if name.endswith("_loaddata_with_illum"):
     name = name[: -len("_loaddata_with_illum")]
 
+path_to_output = output_dir / name
+if batch_label:
+    # if batch label is provided, add it to the output path to keep batches separate per plate
+    path_to_output = path_to_output / batch_label
+
 # create plate info dictionary with all parts of the CellProfiler CLI command to run in parallel
 plate_info_dictionary = {
     name: {
         "path_to_loaddata": loaddata_csv,
-        "path_to_output": output_dir / name,
+        "path_to_output": path_to_output,
         "path_to_pipeline": path_to_pipeline,
     }
 }
+
+if first_image_set is not None:
+    plate_info_dictionary[name]["first_image_set"] = first_image_set
+if last_image_set is not None:
+    plate_info_dictionary[name]["last_image_set"] = last_image_set
 
 # view the dictionary to assess that all info is added correctly
 pprint.pprint(plate_info_dictionary, indent=4)
