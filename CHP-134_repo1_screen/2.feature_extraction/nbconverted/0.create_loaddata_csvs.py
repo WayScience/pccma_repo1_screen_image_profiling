@@ -21,6 +21,7 @@ import sys
 sys.path.append("../../utils")
 import loaddata_utils as ld_utils
 from bandicoot_utils import bandicoot_check
+from typing import List
 
 # check if in a jupyter notebook
 try:
@@ -54,11 +55,11 @@ def plate_name_from_csv(path: pathlib.Path) -> str:
     return name[: -len(suffix)] if name.endswith(suffix) else name
 
 
-def create_row_batch_manifest(csv_paths: list[pathlib.Path], output_path: pathlib.Path) -> pd.DataFrame:
+def create_row_batch_manifest(csv_paths: List[pathlib.Path], output_path: pathlib.Path) -> pd.DataFrame:
     """Create a manifest CSV file that splits plates into batches per well-row for HPC processing.
 
     Args:
-        csv_paths (list[pathlib.Path]): List of paths to the CSV files.
+        csv_paths (List[pathlib.Path]): List of paths to the CSV files.
         output_path (pathlib.Path): Path to the output manifest CSV file.
 
     Returns:
