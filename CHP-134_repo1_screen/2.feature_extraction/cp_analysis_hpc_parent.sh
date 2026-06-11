@@ -30,9 +30,9 @@ echo "Skipped or warning row batches: $skipped_batches"
 # loop over each ready row batch and submit child jobs
 tail -n +2 "$row_batch_manifest" | while IFS=, read -r plate row batch_label loaddata_file first_image_set last_image_set image_set_count well_count is_contiguous status message; do
     # TEST MODE: only run a specific plate and batch
-    if [ "$plate" != "BR00149332" ] || [ "$batch_label" != "row_A" ]; then
-        continue
-    fi
+    # if [ "$plate" != "BR00149332" ] || [ "$batch_label" != "row_A" ]; then
+    #     continue
+    # fi
     
     if [ "$status" != "ready" ]; then
         echo "Skipping ${plate} ${batch_label}: ${status} ${message}"

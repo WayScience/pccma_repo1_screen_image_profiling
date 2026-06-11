@@ -1,21 +1,20 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --mem=6G
+#SBATCH --mem=4G
 #SBATCH --partition=amilan
 #SBATCH --qos=normal
 #SBATCH --account=amc-general
-#SBATCH --time=10:00:00
+#SBATCH --time=9:00:00
 #SBATCH --output=run_CP_child-%j.out
 
-# 1 task at 6 GB RAM to run row-level batches on HPC.
+# 1 task at 4 GB RAM to run row-level batches on HPC.
 
-# Each well/fov (image-sets) needs about 2 GB of RAM, it fails at 10 GB after approximately 2,313 image sets.
-# (about at well K18 per plate)
+# Each well/fov (image-sets) needs about 2 GB of RAM.
 # When running at a row-batch level, we are processing 24 wells with 216 image sets (9 FOVs per well)
 # which we estimate would need potentially a maximum of 4 GB of RAM 
 # (216 image sets x 3.5 MB per image set = 756 MB, plus 2 GB for CellProfiler, plus overhead).
-# I am requesting 6 GB of RAM at 10 hours to be safe, in case of underestimation.
+# I am requesting 4 GB of RAM at 9 hours to be safe, in case of underestimation.
 
 # activate cellprofiler environment
 module load miniforge
