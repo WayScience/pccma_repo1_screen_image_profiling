@@ -29,7 +29,13 @@ export LD_LIBRARY_PATH="$CONDA_PREFIX/lib:$LD_LIBRARY_PATH"
 plate_id=$1
 
 python nbconverted/0.convert_cytotable.py --plate_id "$plate_id"
+exit_code=$?
 
 conda deactivate
+
+if [ "$exit_code" -ne 0 ]; then
+    echo "CytoTable conversion FAILED for plate: $plate_id (exit code $exit_code)"
+    exit "$exit_code"
+fi
 
 echo "CytoTable conversion done for plate: $plate_id"
