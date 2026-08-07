@@ -2,6 +2,8 @@
 # coding: utf-8
 
 # # Convert SQLite outputs to parquet files with cytotable
+# 
+# Notebook will not be executed as we will run on HPC.
 
 # ## Import libraries
 
@@ -9,7 +11,9 @@
 
 
 import argparse
+import logging
 import pathlib
+
 import pandas as pd
 
 # cytotable will merge objects from SQLite file into single cells and save as parquet file
@@ -20,8 +24,6 @@ from cytotable.utils import CYTOTABLE_THREAD_EXECUTOR_LABEL
 from parsl.config import Config
 from parsl.executors import HighThroughputExecutor
 from parsl.executors import ThreadPoolExecutor as ParslThreadPoolExecutor
-
-import logging
 
 # Set the logging level to a higher level to avoid outputting unnecessary errors from config file in convert function
 logging.getLogger().setLevel(logging.ERROR)
