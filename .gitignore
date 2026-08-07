@@ -2,6 +2,9 @@
 __pycache__/
 .ipynb_checkpoints/
 
+# Ignore vscode settings folder
+.vscode/
+
 # Ignore local LoadData CSVs and CellProfiler output folders (not necessary)
 */*/loaddata_csvs/
 */*/cp_output/
@@ -11,3 +14,10 @@ __pycache__/
 
 # Ignore any in_progress work files in folder
 *in_progress/
+
+# Ignore CytoTable runinfo folder
+*runinfo/
+
+# Ignore local SQLite outputs and preprocessing output folders (too large)
+*/*/SQLite_outputs/
+*/*/data/
