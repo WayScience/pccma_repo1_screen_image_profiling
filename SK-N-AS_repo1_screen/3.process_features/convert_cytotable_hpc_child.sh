@@ -2,8 +2,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --mem=16G
-#SBATCH --partition=amilan
-#SBATCH --qos=long
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-long
 #SBATCH --account=amc-general
 #SBATCH --time=1-06:00:00
 #SBATCH --output=convert_cytotable_child-%j.out

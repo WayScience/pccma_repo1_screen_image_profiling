@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --partition=amilan
-#SBATCH --qos=normal
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
 #SBATCH --account=amc-general
-#SBATCH --time=30:00
+#SBATCH --time=5:00
 #SBATCH --output=convert_cytotable_parent-%j.out
 
 # activate preprocessing environment (includes cytotable)
