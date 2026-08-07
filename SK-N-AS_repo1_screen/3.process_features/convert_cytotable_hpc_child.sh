@@ -21,6 +21,10 @@ module load miniforge
 conda init bash
 conda activate pccma_repo1_preprocessing_env
 
+# prioritize the env's own libstdc++ over the system one in /lib64, which is
+# older and missing symbols (e.g. GLIBCXX_3.4.29) required by libzmq.so.5
+export LD_LIBRARY_PATH="$CONDA_PREFIX/lib:$LD_LIBRARY_PATH"
+
 # plate id passed as first argument
 plate_id=$1
 
