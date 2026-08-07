@@ -1,20 +1,33 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --mem=16G
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=32G
 #SBATCH --partition=acpu
 #SBATCH --qos=cpu-long
 #SBATCH --account=amc-general
 #SBATCH --time=1-06:00:00
 #SBATCH --output=convert_cytotable_child-%j.out
 
-# NOTE on --mem/--time: estimated (not measured on Alpine) from a prior local run of
-# this same join workload (parquet backend, no image export) on plate BR00148919
-# (54.6GB SQLite), which took ~18h14m under cytotable's default (largely serial,
-# single-slot) parsl config, while sitting at ~3.75GB RSS during that phase.
-# The 29 plates here range 28.9-58.3GB; scaling the ~18h14m/~3.75GB figures to the
-# largest plate (58.3GB) gives ~19.5h / ~4GB. --time is padded to 30h and --mem to
-# 16G for margin.
+# NOTE on --cpus-per-task/--mem/--time:
+# --time is estimated (not measured on Alpine) from a prior local run of this same
+# join workload (parquet backend, no image export) on plate BR00148919 (54.6GB
+# SQLite), which took ~18h14m under cytotable's default (largely serial,
+# single-slot) parsl config. The 29 plates here range 28.9-58.3GB; scaling to the
+# largest plate (58.3GB) gives ~19.5h. --time is padded to 30h for margin.
+# This estimate predates the parsl worker-count fix below (0.convert_cytotable.ipynb
+# now sizes parsl to --cpus-per-task instead of running effectively single-threaded),
+# so the real runtime under 16 workers is not yet known -- --time is intentionally
+# left unchanged (not shortened) until a real HPC run confirms a speedup, rather
+# than risk a plate getting killed mid-conversion on an unverified assumption.
+#
+# --mem was originally 16G, based on a measured ~3.75GB RSS for the single-worker
+# case above. Under the new multi-worker config, a local benchmark (91k-cell
+# synthetic test, 16 workers/threads) measured ~5.7GB RSS -- more workers process
+# chunks concurrently instead of one at a time, so memory scales with worker count.
+# --mem is padded to 32G (~5.6x the measured parallel figure) for margin, since the
+# benchmark was on a much smaller dataset than a real plate and the final
+# concat/join step (not chunked) is untested at full scale.
 
 # activate preprocessing environment (includes cytotable)
 module load miniforge

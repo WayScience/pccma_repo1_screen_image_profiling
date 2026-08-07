@@ -12,6 +12,7 @@
 
 import argparse
 import logging
+import os
 import pathlib
 
 import pandas as pd
@@ -126,19 +127,38 @@ output_path = pathlib.Path(
     f"{output_dir}/converted_profiles/{plate_id}_converted.parquet"
 )
 
+# Number of workers/threads to use. Prefer the CPU count SLURM actually granted
+# this job (cgroup-aware via sched_getaffinity) over os.cpu_count(), which would
+# report the full node's core count regardless of allocation.
+n_workers = len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else (os.cpu_count() or 1)
+print(f"Using {n_workers} parsl workers/threads (based on allocated CPUs)")
+
 # Same executors as cytotable's default parsl config, but with a per-plate
-# run_dir. cytotable's default uses a shared relative "runinfo" dir with
-# auto-incrementing subfolders (runinfo/000, runinfo/001, ...); when many plate
-# jobs are submitted around the same time from the same working directory (as
-# the HPC parent script does), they race to claim the same next subfolder and
-# one loses with FileExistsError. Scoping run_dir per plate avoids the collision.
+# run_dir and worker/thread counts matching the allocated CPUs. cytotable's
+# default uses a shared relative "runinfo" dir with auto-incrementing
+# subfolders (runinfo/000, runinfo/001, ...); when many plate jobs are
+# submitted around the same time from the same working directory (as the HPC
+# parent script does), they race to claim the same next subfolder and one
+# loses with FileExistsError. Scoping run_dir per plate avoids the collision.
+#
+# cytotable's default HighThroughputExecutor also only ever runs 1 worker
+# unless max_workers_per_node is set explicitly (parsl has no way to detect
+# our SLURM allocation on its own) -- a local benchmark on a synthetic
+# multi-chunk test set showed the default single-worker config stalling
+# indefinitely partway through, while matching worker/thread counts to the
+# allocated CPU count (16 locally) completed the same test in ~100s. This has
+# only been validated at small scale locally, not against a full HPC plate,
+# so keep SLURM --time generous until a real run confirms the speedup holds.
 parsl_config = Config(
     run_dir=f"runinfo/{plate_id}",
     executors=[
-        HighThroughputExecutor(label="htex_default_for_cytotable"),
+        HighThroughputExecutor(
+            label="htex_default_for_cytotable",
+            max_workers_per_node=n_workers,
+        ),
         ParslThreadPoolExecutor(
             label=CYTOTABLE_THREAD_EXECUTOR_LABEL,
-            max_threads=4,
+            max_threads=n_workers,
         ),
     ],
 )
