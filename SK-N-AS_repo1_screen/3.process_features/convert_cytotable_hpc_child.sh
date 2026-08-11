@@ -1,33 +1,38 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
-#SBATCH --mem=32G
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=100G
 #SBATCH --partition=acpu
-#SBATCH --qos=cpu-long
+#SBATCH --qos=cpu-normal
 #SBATCH --account=amc-general
-#SBATCH --time=1-06:00:00
+#SBATCH --time=20:00:00
 #SBATCH --output=convert_cytotable_child-%j.out
 
 # NOTE on --cpus-per-task/--mem/--time:
-# --time is estimated (not measured on Alpine) from a prior local run of this same
-# join workload (parquet backend, no image export) on plate BR00148919 (54.6GB
-# SQLite), which took ~18h14m under cytotable's default (largely serial,
-# single-slot) parsl config. The 29 plates here range 28.9-58.3GB; scaling to the
-# largest plate (58.3GB) gives ~19.5h. --time is padded to 30h for margin.
-# This estimate predates the parsl worker-count fix below (0.convert_cytotable.ipynb
-# now sizes parsl to --cpus-per-task instead of running effectively single-threaded),
-# so the real runtime under 16 workers is not yet known -- --time is intentionally
-# left unchanged (not shortened) until a real HPC run confirms a speedup, rather
-# than risk a plate getting killed mid-conversion on an unverified assumption.
+# --time was originally padded to 30h (cpu-long) based on a local single-worker
+# run of this same join workload (parquet backend, no image export) on plate
+# BR00148919 (54.6GB SQLite), which took ~18h14m under cytotable's default
+# (largely serial, single-slot) parsl config, scaled to the largest of the 29
+# plates (58.3GB) at ~19.5h.
+# A subsequent Alpine run under the fixed multi-worker config (16 workers, 32G)
+# showed the pre-join stage completing in ~1h16m, but the job then failed
+# immediately at the joins step with an OOM. This means the bulk of the
+# previously-estimated runtime (the old serial single-worker figure) no longer
+# reflects actual behavior under parallel workers -- the pre-join stage is fast,
+# and the joins step is memory-bound rather than time-bound. --time is reduced
+# to 20h and --qos switched to cpu-normal accordingly; this remains a rough
+# margin rather than a measured full-pipeline runtime, since a successful
+# end-to-end run (through the joins step) hasn't yet completed.
 #
 # --mem was originally 16G, based on a measured ~3.75GB RSS for the single-worker
 # case above. Under the new multi-worker config, a local benchmark (91k-cell
 # synthetic test, 16 workers/threads) measured ~5.7GB RSS -- more workers process
 # chunks concurrently instead of one at a time, so memory scales with worker count.
-# --mem is padded to 32G (~5.6x the measured parallel figure) for margin, since the
-# benchmark was on a much smaller dataset than a real plate and the final
-# concat/join step (not chunked) is untested at full scale.
+# The 32G derived from that benchmark was confirmed insufficient on Alpine (OOM
+# at the joins step, per above). --mem is now set to 100G for the 8-worker config
+# as a conservative placeholder pending a run that succeeds through the joins step;
+# it has not itself been derived from a benchmark at 8 workers.
 
 # activate preprocessing environment (includes cytotable)
 module load miniforge
@@ -47,8 +52,8 @@ exit_code=$?
 conda deactivate
 
 if [ "$exit_code" -ne 0 ]; then
-    echo "CytoTable conversion FAILED for plate: $plate_id (exit code $exit_code)"
-    exit "$exit_code"
+echo "CytoTable conversion FAILED for plate: $plate_id (exit code $exit_code)"
+exit "$exit_code"
 fi
 
 echo "CytoTable conversion done for plate: $plate_id"
