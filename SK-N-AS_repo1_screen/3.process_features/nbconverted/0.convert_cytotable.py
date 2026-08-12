@@ -18,9 +18,9 @@ import pandas as pd
 
 # cytotable will merge objects from SQLite file into single cells and save as parquet file
 from cytotable import convert, presets
-
 from parsl.config import Config
 from parsl.executors import HighThroughputExecutor
+from parsl.providers import LocalProvider
 
 # Set the logging level to a higher level to avoid outputting unnecessary errors from config file in convert function
 logging.getLogger().setLevel(logging.ERROR)
@@ -132,9 +132,37 @@ convert(
     joins=joins,
     chunk_size=10000,
     parsl_config=Config(
-                executors=[HighThroughputExecutor()],
-                run_dir=f"runinfo/{plate_id}",
-            ),
+        executors=[
+            HighThroughputExecutor(
+                label="local_htex",
+                # One CPU per Parsl worker.
+                #
+                # We want 16 concurrent CytoTable tasks, with each worker
+                # assigned one CPU. We do not assign 8 CPUs to each worker
+                # because that could increase CPU/thread usage and memory
+                # pressure within the underlying application.
+                cores_per_worker=1,
+                # Limit the node to 16 concurrent Parsl workers.
+                #
+                # Slurm requests 16 CPUs:
+                #     16 workers × 1 CPU/worker = 16 CPUs
+                max_workers_per_node=16,
+                # Assign workers to distinct CPU cores to reduce contention.
+                cpu_affinity="block",
+                provider=LocalProvider(
+                    # Slurm has already allocated the compute node.
+                    # LocalProvider therefore starts the workers directly
+                    # on that node rather than submitting another Slurm job.
+                    init_blocks=1,
+                    max_blocks=1,
+                ),
+            )
+        ],
+        # Keep Parsl logs separate for each plate.
+        run_dir=f"runinfo/{plate_id}",
+        # The Slurm allocation is fixed for this run.
+        strategy="none",
+    ),
 )
 
 print(f"Plate {plate_id} has been converted with cytotable!")
