@@ -1,0 +1,6 @@
+plate,row,batch_label,loaddata_csv,first_image_set,last_image_set,image_set_count,well_count,is_contiguous,status,message
+BR00149333,L,row_L,/media/18tbdrive/1.Github_Repositories/pccma_repo1_screen_image_profiling/CHP-134_repo1_screen/2.feature_extraction/loaddata_csvs/BR00149333_loaddata_with_illum.csv,2377,2592,216,24,True,ready,
+BR00149357,D,row_D,/media/18tbdrive/1.Github_Repositories/pccma_repo1_screen_image_profiling/CHP-134_repo1_screen/2.feature_extraction/loaddata_csvs/BR00149357_loaddata_with_illum.csv,649,864,216,24,True,ready,
+BR00149359,K,row_K,/media/18tbdrive/1.Github_Repositories/pccma_repo1_screen_image_profiling/CHP-134_repo1_screen/2.feature_extraction/loaddata_csvs/BR00149359_loaddata_with_illum.csv,2161,2376,216,24,True,ready,
+BR00149546,G,row_G,/media/18tbdrive/1.Github_Repositories/pccma_repo1_screen_image_profiling/CHP-134_repo1_screen/2.feature_extraction/loaddata_csvs/BR00149546_loaddata_with_illum.csv,1297,1512,216,24,True,ready,
+BR00149561,H,row_H,/media/18tbdrive/1.Github_Repositories/pccma_repo1_screen_image_profiling/CHP-134_repo1_screen/2.feature_extraction/loaddata_csvs/BR00149561_loaddata_with_illum.csv,1513,1728,216,24,True,ready,
