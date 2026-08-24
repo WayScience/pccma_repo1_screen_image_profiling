@@ -7,7 +7,7 @@
 
 # ## Import libraries
 
-# In[ ]:
+# In[1]:
 
 
 import argparse
@@ -36,7 +36,7 @@ except NameError:
 
 # ## Set paths and variables
 
-# In[ ]:
+# In[2]:
 
 
 if not in_notebook:
@@ -74,7 +74,7 @@ else:
     batch_label_filter = None
 
 
-# In[ ]:
+# In[3]:
 
 
 # preset configurations based on typical CellProfiler outputs
@@ -150,6 +150,8 @@ for name in plate_names:
 # ## Convert SQLite to parquet files, then clean up columns
 # 
 # Runs sequentially (one plate/row-batch at a time) since this is a local run. Already-converted outputs are skipped, so the notebook can safely be re-run if interrupted.
+# 
+# > Note: We do not run this code cell in notebook, only in script for stability.
 
 # In[ ]:
 

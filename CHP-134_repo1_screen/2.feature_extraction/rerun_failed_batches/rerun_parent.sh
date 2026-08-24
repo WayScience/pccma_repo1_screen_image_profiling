@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --partition=amilan
-#SBATCH --qos=normal
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
 #SBATCH --account=amc-general
-#SBATCH --time=15:00
+#SBATCH --time=0-00:2:00
 #SBATCH --output=cp_rerun_parent-%j.out
 
 # Resubmits the row batches listed in rerun_manifest.csv (the 5 batches that
