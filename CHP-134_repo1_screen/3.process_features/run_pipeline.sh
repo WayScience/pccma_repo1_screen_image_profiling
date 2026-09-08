@@ -24,7 +24,7 @@
 
 set -uo pipefail
 
-overwrite="${OVERWRITE:-1}"
+overwrite="${OVERWRITE:-}"
 
 # -----------------------------
 # Initialize environment
