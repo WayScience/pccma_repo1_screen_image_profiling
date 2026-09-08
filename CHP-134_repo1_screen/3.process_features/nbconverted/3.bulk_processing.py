@@ -236,7 +236,7 @@ for plate_id, info in plate_info_dictionary.items():
     normalize(
         profiles=aggregated_df,
         method="mad_robustize", # use robustize to avoid influence of outliers in the normalization
-        samples="neg_control_query", # normalize to negative controls only, not all wells (which would include compound wells)
+        samples=neg_control_query, # normalize to negative controls only, not all wells (which would include compound wells)
         output_file=output_normalized_file,
         output_type="parquet",
     )
@@ -314,8 +314,8 @@ for plate_id, info in plate_info_dictionary.items():
 spherized_output_dir = pathlib.Path("./data/spherized_profiles")
 spherized_output_dir.mkdir(parents=True, exist_ok=True)
 
-pooled_feature_select_file = output_dir / "repo1_screen_bulk_feature_selected.parquet"
-output_spherized_file = spherized_output_dir / "repo1_screen_bulk_spherized.parquet"
+pooled_feature_select_file = output_dir / "SK-N-AS_repo1_screen_pooled_bulk_feature_selected.parquet"
+output_spherized_file = spherized_output_dir / "SK-N-AS_repo1_screen_pooled_bulk_spherized.parquet"
 
 
 # In[ ]:
@@ -365,12 +365,12 @@ else:
     # step 2b: Remove features with too little variation inside the exact
     # control population used to fit spherization.
     print(
-        "Feature selecting pooled screen with variance threshold within "
+        "Feature selecting pooled screen with frequency threshold within "
         "negative controls only..."
     )
     zero_negcon_var_fs_df = feature_select(
         profiles=feature_select_df,
-        operation="variance_threshold",
+        operation="frequency_threshold",
         freq_cut=0.05, # same as default
         unique_cut=0.01, # same as default
         samples=neg_control_query,

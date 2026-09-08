@@ -109,6 +109,7 @@ for plate_map_name, layout_mapping_df in corrected_mapping_df.groupby(
         layout_platemap_df.columns.str.replace(" ", "_")
         .str.replace("(", "")
         .str.replace(")", "")
+        .str.replace("/", "_")
     )
 
     output_file = metadata_folder / f"{plate_map_name}_platemap.csv"

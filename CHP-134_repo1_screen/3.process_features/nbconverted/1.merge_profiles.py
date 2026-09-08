@@ -72,7 +72,7 @@ print(
 # 
 # Already-merged plates are skipped, so the notebook can safely be re-run if interrupted.
 
-# In[ ]:
+# In[3]:
 
 
 failed_plates = []
@@ -87,13 +87,32 @@ for i, (plate_id, file_paths) in enumerate(plate_to_files.items(), start=1):
     print(f"[{i}/{len(plate_to_files)}] Merging {plate_id} ({len(file_paths)} row batches)...")
 
     try:
-        batch_dfs = [pd.read_parquet(file_path) for file_path in sorted(file_paths)]
+        # Verify we have all rows A-P for this plate and sort file paths by row order
+        file_rows = []
+        for fp in file_paths:
+            m = row_batch_pattern.match(fp.name)
+            if not m:
+                raise ValueError(f"Unrecognized file name for plate {plate_id}: {fp.name}")
+            file_rows.append((fp, m.group("row").upper()))
+
+        expected_rows = [chr(ord("A") + i) for i in range(16)]  # A..P
+        found_rows = [r for _, r in file_rows]
+        missing = [r for r in expected_rows if r not in found_rows]
+        if missing:
+            raise ValueError(f"Missing rows for plate {plate_id}: {missing}")
+
+        order = {r: i for i, r in enumerate(expected_rows)}
+        sorted_file_paths = [fp for fp, _ in sorted(file_rows, key=lambda x: order.get(x[1], 999))]
+
+        # Merge the row-batch parquet files for this plate into a single parquet file
+        batch_dfs = [pd.read_parquet(fp) for fp in sorted_file_paths]
         merged_df = pd.concat(batch_dfs, ignore_index=True)
 
         # Confirm no rows were dropped or duplicated during the concatenation
         expected_rows = sum(len(batch_df) for batch_df in batch_dfs)
         assert len(merged_df) == expected_rows, "Row count mismatch after concatenation"
 
+        # Save the merged plate profile to a parquet file
         merged_df.to_parquet(merged_path, index=False)
 
         print(f"[{i}/{len(plate_to_files)}] Done: {plate_id} -> {merged_df.shape}")
