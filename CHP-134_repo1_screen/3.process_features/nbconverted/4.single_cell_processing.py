@@ -81,8 +81,10 @@ plate_info_dictionary = {
         "profile_path": str(merged_dir / f"{plate_id}.parquet"),
 
         # QC annotations are produced per-plate by 2.single_cell_qc.ipynb
-        "qc_path": str(
-            (qc_dir / f"{plate_id}_qc_annotations.parquet").resolve(strict=True)
+        "qc_path": (
+            str((qc_dir / f"{plate_id}_qc_annotations.parquet").resolve())
+            if (qc_dir / f"{plate_id}_qc_annotations.parquet").exists()
+            else None
         ),
 
         # Find the platemap file based on barcode match
