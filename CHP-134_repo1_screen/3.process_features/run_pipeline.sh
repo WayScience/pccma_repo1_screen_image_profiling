@@ -30,7 +30,6 @@ overwrite="${OVERWRITE:-}"
 # Initialize environment
 # -----------------------------
 $(conda info --base)/etc/profile.d/conda.sh
-conda init bash
 conda activate pccma_repo1_preprocessing_env
 
 failed_plates=()
