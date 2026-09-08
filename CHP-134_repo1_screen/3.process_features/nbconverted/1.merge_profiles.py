@@ -10,6 +10,7 @@
 # In[1]:
 
 
+import os
 import pathlib
 import re
 import sys
@@ -69,9 +70,20 @@ print(
 )
 
 
+# In[ ]:
+
+
+# OVERWRITE - if set (1/true/yes), re-merge and overwrite a plate's merged
+#             profile even if it already exists. Leave unset (the default) to
+#             skip plates that are already merged. Set by run_pipeline.sh so it
+#             can control this without papermill.
+overwrite = os.environ.get("OVERWRITE", "").strip().lower() in ("1", "true", "yes")
+
+
 # ## Merge row batches into one profile per plate
 # 
-# Already-merged plates are skipped, so the notebook can safely be re-run if interrupted.
+# Already-merged plates are skipped by default, so the notebook can safely be re-run if interrupted. Set the `OVERWRITE` env var to re-merge and overwrite plates that already have output.
+# 
 
 # In[3]:
 
@@ -81,7 +93,7 @@ failed_plates = []
 for i, (plate_id, file_paths) in enumerate(plate_to_files.items(), start=1):
     merged_path = merged_dir / f"{plate_id}.parquet"
 
-    if merged_path.exists():
+    if merged_path.exists() and not overwrite:
         print(f"[{i}/{len(plate_to_files)}] Skipping {plate_id} (already merged)")
         continue
 
