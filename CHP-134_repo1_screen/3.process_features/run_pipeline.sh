@@ -71,7 +71,7 @@ for plate_id in "${plate_ids[@]}"; do
     qc_output="./data/qc_results/${plate_id}_qc_annotations.parquet"
     executed_notebook="${qc_notebook_dir}/${plate_id}.ipynb"
 
-    if [ -f "$qc_output" ]; then
+    if [ -f "$qc_output" ] && [ -z "$overwrite" ]; then
         echo "✅ ${plate_id} already QC'd (found ${qc_output})"
         continue
     fi
