@@ -12,6 +12,7 @@
 
 import pathlib
 import re
+import sys
 import traceback
 
 import pandas as pd
@@ -134,4 +135,8 @@ if failed_plates:
     print("Failed plate merges:")
     for plate_id in failed_plates:
         print(f"  {plate_id}")
+
+    # A silent partial merge is worse than a loud failure: exit nonzero so
+    # callers (e.g. run_pipeline.sh) can detect an incomplete merge step.
+    sys.exit(1)
 

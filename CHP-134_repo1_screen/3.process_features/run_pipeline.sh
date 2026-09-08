@@ -36,6 +36,10 @@ failed_plates=()
 
 # convert notebooks to scripts
 jupyter nbconvert --to script --output-dir=nbconverted/ *.ipynb
+if [ $? -ne 0 ]; then
+    echo "jupyter nbconvert FAILED; aborting pipeline before QC."
+    exit 1
+fi
 
 # -----------------------------
 # Step 1: merge row-batch profiles into one profile per plate
@@ -44,6 +48,10 @@ echo "======================================"
 echo "Step 1: 1.merge_profiles.ipynb"
 echo "======================================"
 python nbconverted/1.merge_profiles.py
+if [ $? -ne 0 ]; then
+    echo "1.merge_profiles.py FAILED (incomplete merge); aborting pipeline before QC."
+    exit 1
+fi
 
 # -----------------------------
 # Step 2: per-plate single-cell QC via papermill
