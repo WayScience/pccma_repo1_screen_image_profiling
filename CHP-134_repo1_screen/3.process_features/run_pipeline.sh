@@ -18,13 +18,27 @@
 # Each plate's per-stage timing (and a total) is appended to
 # data/bulk_profiles/timing_log.csv and data/single_cell_profiles/timing_log.csv.
 #
-# By default, steps 3 and 4 skip a plate that already has output. Set
+# By default, every step skips a plate that already has output. Set
 # OVERWRITE=1 (e.g. `OVERWRITE=1 ./run_pipeline.sh`) to reprocess and
 # overwrite every plate's output instead.
 
 set -uo pipefail
 
 overwrite="${OVERWRITE:-}"
+
+# -----------------------------
+# Total runtime tracking (printed on exit, success or failure, via trap)
+# -----------------------------
+pipeline_start_time=$(date +%s)
+
+print_total_time() {
+    local elapsed=$(( $(date +%s) - pipeline_start_time ))
+    echo "======================================"
+    printf 'Total pipeline time: %dh %dm %ds\n' \
+        $((elapsed / 3600)) $(((elapsed % 3600) / 60)) $((elapsed % 60))
+    echo "======================================"
+}
+trap print_total_time EXIT
 
 # -----------------------------
 # Initialize environment
@@ -47,7 +61,7 @@ fi
 echo "======================================"
 echo "Step 1: 1.merge_profiles.ipynb"
 echo "======================================"
-python nbconverted/1.merge_profiles.py
+OVERWRITE="$overwrite" python nbconverted/1.merge_profiles.py
 if [ $? -ne 0 ]; then
     echo "1.merge_profiles.py FAILED (incomplete merge); aborting pipeline before QC."
     exit 1
