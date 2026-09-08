@@ -46,6 +46,13 @@ data_dir = pathlib.Path("./data/merged_profiles/")
 cleaned_dir = pathlib.Path("./data/qc_results")
 cleaned_dir.mkdir(exist_ok=True)
 
+# Combined QC summary CSV (percentage of cells flagged per condition, and
+# overall, one row per plate/condition) so outlier plates are easy to spot
+# across the whole screen without opening each qc_annotations parquet.
+# run_pipeline.sh runs this notebook for one plate at a time, in sequence,
+# so appending to this shared file plate-by-plate is safe.
+qc_summary_path = cleaned_dir / "qc_summary.csv"
+
 
 # In[4]:
 
@@ -413,8 +420,36 @@ qc_annotations = label_outliers(
     annotation_metadata_columns=metadata_columns,
 )
 
-# Print the number of outliers and percentage of outliers for each QC condition
-qc_annotations.filter(like="Metadata_cqc_").sum().to_frame(name="num_outliers").assign(
+outlier_flags = qc_annotations.filter(like="Metadata_cqc_")
+
+# Percentage of cells flagged as an outlier, per QC condition
+qc_condition_summary = outlier_flags.sum().to_frame(name="num_outliers").assign(
     percentage_outliers=lambda x: (x["num_outliers"] / len(qc_annotations)) * 100
 )
+qc_condition_summary.index.name = "qc_condition"
+
+# Overall: a cell fails the plate if it is flagged by at least one condition
+any_outlier = outlier_flags.any(axis=1)
+qc_condition_summary.loc["any_condition (overall)"] = [
+    any_outlier.sum(),
+    (any_outlier.sum() / len(qc_annotations)) * 100,
+]
+
+qc_condition_summary = qc_condition_summary.reset_index().assign(plate_id=plate_id)[
+    ["plate_id", "qc_condition", "num_outliers", "percentage_outliers"]
+]
+
+# Append this plate's rows to the combined screen-wide summary, replacing
+# any existing rows for this plate so a rerun does not duplicate them.
+# Safe because run_pipeline.sh processes plates sequentially, one at a time.
+if qc_summary_path.exists():
+    existing_summary = pd.read_csv(qc_summary_path)
+    existing_summary = existing_summary[existing_summary["plate_id"] != plate_id]
+    qc_condition_summary = pd.concat(
+        [existing_summary, qc_condition_summary], ignore_index=True
+    )
+
+qc_condition_summary.to_csv(qc_summary_path, index=False)
+
+qc_condition_summary[qc_condition_summary["plate_id"] == plate_id]
 
