@@ -43,8 +43,12 @@ trap print_total_time EXIT
 # -----------------------------
 # Initialize environment
 # -----------------------------
-$(conda info --base)/etc/profile.d/conda.sh
+source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate pccma_repo1_preprocessing_env
+if [ $? -ne 0 ]; then
+    echo "Failed to activate conda env pccma_repo1_preprocessing_env; aborting."
+    exit 1
+fi
 
 failed_plates=()
 

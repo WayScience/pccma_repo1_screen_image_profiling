@@ -25,3 +25,6 @@ __pycache__/
 # Ignore per-plate papermill-executed notebooks (e.g. one per plate from
 # 2.single_cell_qc.ipynb) - these are generated copies, not source
 */*/executed_notebooks/
+
+# Ignore log files
+*.log
