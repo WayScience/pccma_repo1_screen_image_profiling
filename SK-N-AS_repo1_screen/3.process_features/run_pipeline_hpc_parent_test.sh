@@ -23,10 +23,19 @@ conda activate pccma_repo1_preprocessing_env
 # convert all notebooks to python scripts (if any exist)
 jupyter nbconvert --to=script --FilesWriter.build_directory=nbconverted/ *.ipynb
 
-# Converted profiles (one parquet per plate) live on the PetaLibrary "koala"
-# mount on Alpine. This must match the Alpine-detection branch in
-# 1.single_cell_qc.ipynb through 5.single_cell_feature_select.ipynb.
-converted_dir="/pl/active/koala/ALSF_screen_data/SK-N-AS_repo1_profiles/converted_profiles"
+# Converted profiles (one parquet per plate) are meant to live on the
+# PetaLibrary "koala" mount on Alpine, but fall back to the relative
+# data/converted_profiles directory in this repo checkout on scratch, in
+# case a plate hasn't been synced to koala yet. Must match the
+# Alpine-detection branch in 1.single_cell_qc.ipynb through
+# 5.single_cell_feature_select.ipynb.
+koala_dir="/pl/active/koala/ALSF_screen_data/SK-N-AS_repo1_profiles/converted_profiles"
+scratch_dir="data/converted_profiles"
+if [ -d "$koala_dir" ]; then
+    converted_dir="$koala_dir"
+else
+    converted_dir="$scratch_dir"
+fi
 
 # plate id can be passed as an argument (sbatch run_pipeline_hpc_parent_test.sh BR00148919);
 # otherwise default to the first plate found (sorted) so this runs with no args too.

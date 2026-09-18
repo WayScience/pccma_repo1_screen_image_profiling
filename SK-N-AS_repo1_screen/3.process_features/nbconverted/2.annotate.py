@@ -30,13 +30,18 @@ from pycytominer.cyto_utils import output
 
 # Directory containing the converted single-cell profile parquet per plate,
 # produced by 0.convert_cytotable.ipynb. On Alpine (HPC), converted profiles
-# live on the PetaLibrary "koala" mount; locally they live on the external
-# drive since each plate's profile is tens of GB. Mirrors the same
-# Alpine-detection branch used for sqlite_dir in 0.convert_cytotable.ipynb.
+# are meant to live on the PetaLibrary "koala" mount, but fall back to the
+# relative data/converted_profiles directory that 0.convert_cytotable.ipynb
+# writes to in the repo checkout on scratch, in case a plate hasn't been
+# synced to koala yet. Locally they live on the external drive since each
+# plate's profile is tens of GB. Mirrors the same Alpine-detection branch
+# used for sqlite_dir in 0.convert_cytotable.ipynb.
 alpine_scratch_path = pathlib.Path("/scratch/alpine")
 
 if alpine_scratch_path.exists():
-    converted_dir = pathlib.Path("/pl/active/koala/ALSF_screen_data/SK-N-AS_repo1_profiles/converted_profiles")
+    koala_dir = pathlib.Path("/pl/active/koala/ALSF_screen_data/SK-N-AS_repo1_profiles/converted_profiles")
+    scratch_dir = pathlib.Path("data/converted_profiles")
+    converted_dir = koala_dir if koala_dir.exists() else scratch_dir
 else:
     converted_dir = pathlib.Path("/media/18tbdrive2/SK-N-AS_repo1_profiles/converted_profiles")
 
