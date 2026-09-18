@@ -295,7 +295,7 @@ for plate_id, info in plate_info_dictionary.items():
                 f"{normalize_seconds:.1f}",
                 f"{feature_select_seconds:.1f}",
                 f"{total_seconds:.1f}",
-                datetime.now().isoformat(timespec="seconds"),
+                datetime.now(timezone.utc).isoformat(timespec="seconds"),
             ]
         )
 

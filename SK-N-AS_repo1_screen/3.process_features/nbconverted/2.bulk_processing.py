@@ -25,7 +25,7 @@ from pycytominer.cyto_utils import output
 
 # ## Set paths and variables
 
-# In[ ]:
+# In[22]:
 
 
 # Directory containing the converted single-cell profile parquet per plate,
@@ -75,7 +75,7 @@ plate_names
 
 # ## Set dictionary with plates to process
 
-# In[ ]:
+# In[23]:
 
 
 # Create plate info dictionary
@@ -114,12 +114,22 @@ pprint.pprint(plate_info_dictionary, indent=4)
 
 # Run configuration, both driven by environment variables so run_pipeline.sh
 # can control them without papermill:
-#   PLATE_ID  - restrict to a single plate (used to run each plate as its own
-#               process so memory doesn't accumulate across plates). Leave
-#               unset to process all plates, e.g. when running interactively.
-#   OVERWRITE - if set (1/true/yes), reprocess and overwrite a plate's output
-#               even if it already exists. Leave unset (the default) to skip
-#               plates that already have output.
+#   PLATE_ID       - restrict to a single plate (used to run each plate as its
+#                    own process so memory doesn't accumulate across plates).
+#                    Leave unset to process all plates, e.g. when running
+#                    interactively.
+#   OVERWRITE      - if set (1/true/yes), reprocess and overwrite a plate's
+#                    output even if it already exists. Leave unset (the
+#                    default) to skip plates that already have output.
+#   SPHERING_ONLY  - if set (1/true/yes), skip the per-plate bulk-processing
+#                    loop below and go straight to the sphering step. Used by
+#                    run_pipeline.sh's sphering invocation, which runs this
+#                    script with PLATE_ID unset (sphering needs every plate's
+#                    normalized profile pooled together) -- without this flag
+#                    that invocation would also re-run the per-plate loop for
+#                    every plate a second time, which is especially wasteful
+#                    under OVERWRITE=1 since the per-plate skip-if-exists
+#                    check is disabled there.
 plate_id_filter = os.environ.get("PLATE_ID")
 if plate_id_filter:
     if plate_id_filter not in plate_info_dictionary:
@@ -127,6 +137,7 @@ if plate_id_filter:
     plate_info_dictionary = {plate_id_filter: plate_info_dictionary[plate_id_filter]}
 
 overwrite = os.environ.get("OVERWRITE", "").strip().lower() in ("1", "true", "yes")
+sphering_only = os.environ.get("SPHERING_ONLY", "").strip().lower() in ("1", "true", "yes")
 
 plate_info_dictionary
 
@@ -136,166 +147,169 @@ plate_info_dictionary
 # In[ ]:
 
 
-timing_log_path = output_dir / "timing_log.csv"
+if sphering_only:
+    print("SPHERING_ONLY is set: skipping the per-plate bulk-processing loop.")
+else:
+    timing_log_path = output_dir / "timing_log.csv"
 
-for plate_id, info in plate_info_dictionary.items():
-    if info["qc_path"] is None:
-        print(
-            f"Skipping {plate_id}: no QC annotations yet "
-            "(run 1.single_cell_qc.ipynb for this plate first)"
+    for plate_id, info in plate_info_dictionary.items():
+        if info["qc_path"] is None:
+            print(
+                f"Skipping {plate_id}: no QC annotations yet "
+                "(run 1.single_cell_qc.ipynb for this plate first)"
+            )
+            continue
+        if info["platemap_path"] is None:
+            print(f"Skipping {plate_id}: no platemap found in barcode_platemap.csv")
+            continue
+
+        # Output file paths for each file
+        output_annotated_file = str(output_dir / f"{plate_id}_bulk_annotated.parquet")
+        output_normalized_file = str(output_dir / f"{plate_id}_bulk_normalized.parquet")
+        output_feature_select_file = str(
+            output_dir / f"{plate_id}_bulk_feature_selected.parquet"
         )
-        continue
-    if info["platemap_path"] is None:
-        print(f"Skipping {plate_id}: no platemap found in barcode_platemap.csv")
-        continue
 
-    # Output file paths for each file
-    output_annotated_file = str(output_dir / f"{plate_id}_bulk_annotated.parquet")
-    output_normalized_file = str(output_dir / f"{plate_id}_bulk_normalized.parquet")
-    output_feature_select_file = str(
-        output_dir / f"{plate_id}_bulk_feature_selected.parquet"
-    )
+        # Already fully processed, so this plate can safely be skipped on a rerun
+        # (unless OVERWRITE is set, in which case it's reprocessed regardless)
+        if pathlib.Path(output_feature_select_file).exists() and not overwrite:
+            print(f"Skipping {plate_id}: already processed (found {output_feature_select_file})")
+            continue
 
-    # Already fully processed, so this plate can safely be skipped on a rerun
-    # (unless OVERWRITE is set, in which case it's reprocessed regardless)
-    if pathlib.Path(output_feature_select_file).exists() and not overwrite:
-        print(f"Skipping {plate_id}: already processed (found {output_feature_select_file})")
-        continue
+        print(f"Now performing pycytominer pipeline for {plate_id}")
+        plate_start_time = time.time()
 
-    print(f"Now performing pycytominer pipeline for {plate_id}")
-    plate_start_time = time.time()
+        # Load single-cell profile, its QC annotations, and the platemap
+        single_cell_df = pd.read_parquet(info["profile_path"])
+        qc_df = pd.read_parquet(info["qc_path"])
+        platemap_df = pd.read_csv(info["platemap_path"]).rename(
+            columns={"Well Position": "Well", "Batch Id": "Batch_Id"}
+        )
 
-    # Load single-cell profile, its QC annotations, and the platemap
-    single_cell_df = pd.read_parquet(info["profile_path"])
-    qc_df = pd.read_parquet(info["qc_path"])
-    platemap_df = pd.read_csv(info["platemap_path"]).rename(
-        columns={"Well Position": "Well", "Batch Id": "Batch_Id"}
-    )
+        # Define the columns from the external QC file that indicate poor-quality segmentations
+        cqc_cols = [col for col in qc_df.columns if col.startswith("Metadata_cqc_")]
+        join_keys = [
+            "Image_Metadata_Well", "Image_Metadata_Site",
+            "Nuclei_Location_Center_X", "Nuclei_Location_Center_Y",
+        ]
+        assert not qc_df.duplicated(subset=join_keys).any(), f"{plate_id}: QC file has duplicate rows for the same cell"
+        assert not single_cell_df.duplicated(subset=join_keys).any(), f"{plate_id}: profile file has duplicate rows for the same cell"
 
-    # Define the columns from the external QC file that indicate poor-quality segmentations
-    cqc_cols = [col for col in qc_df.columns if col.startswith("Metadata_cqc_")]
-    join_keys = [
-        "Image_Metadata_Well", "Image_Metadata_Site",
-        "Nuclei_Location_Center_X", "Nuclei_Location_Center_Y",
-    ]
-    assert not qc_df.duplicated(subset=join_keys).any(), f"{plate_id}: QC file has duplicate rows for the same cell"
-    assert not single_cell_df.duplicated(subset=join_keys).any(), f"{plate_id}: profile file has duplicate rows for the same cell"
+        # Step 1: Annotation (platemap + external QC metadata in one call)
+        annotate_start_time = time.time()
+        annotated_df = annotate(
+            profiles=single_cell_df,
+            platemap=platemap_df,
+            join_on=["Metadata_Well", "Image_Metadata_Well"],
+            external_metadata=qc_df[join_keys + cqc_cols],
+            external_join_on=join_keys,
+        )
+        assert annotated_df[cqc_cols].isna().sum().sum() == 0, f"{plate_id}: some cells have no matching QC annotation"
 
-    # Step 1: Annotation (platemap + external QC metadata in one call)
-    annotate_start_time = time.time()
-    annotated_df = annotate(
-        profiles=single_cell_df,
-        platemap=platemap_df,
-        join_on=["Metadata_Well", "Image_Metadata_Well"],
-        external_metadata=qc_df[join_keys + cqc_cols],
-        external_join_on=join_keys,
-    )
-    assert annotated_df[cqc_cols].isna().sum().sum() == 0, f"{plate_id}: some cells have no matching QC annotation"
+        is_poor_quality = annotated_df[cqc_cols].any(axis=1)
+        print(f"  Dropping {is_poor_quality.sum()} / {len(annotated_df)} poor-quality segmentations")
+        annotated_df = annotated_df.loc[~is_poor_quality].drop(columns=cqc_cols).reset_index(drop=True)
+        annotate_seconds = time.time() - annotate_start_time
 
-    is_poor_quality = annotated_df[cqc_cols].any(axis=1)
-    print(f"  Dropping {is_poor_quality.sum()} / {len(annotated_df)} poor-quality segmentations")
-    annotated_df = annotated_df.loc[~is_poor_quality].drop(columns=cqc_cols).reset_index(drop=True)
-    annotate_seconds = time.time() - annotate_start_time
+        # Step 2: Aggregation
+        # aggregate() only keeps `strata` columns plus the
+        # aggregated numeric features, dropping everything else. Rather than
+        # re-annotating the aggregated (well-level) data afterward to reattach
+        # platemap metadata, include every platemap-derived metadata column that's
+        # constant within a well directly in `strata`, so it survives aggregation
+        aggregate_start_time = time.time()
+        per_cell_cols = set(single_cell_df.columns)
+        candidate_metadata_cols = [
+            col for col in annotated_df.columns
+            if col.startswith("Metadata_")
+            and col not in ("Metadata_Plate", "Metadata_Well")
+            and col not in per_cell_cols
+        ]
+        strata_cols = ["Metadata_Plate", "Metadata_Well"] + [
+            col for col in candidate_metadata_cols
+            if annotated_df.groupby("Metadata_Well")[col].nunique(dropna=False).le(1).all()
+        ]
+        aggregated_df = aggregate(
+            population_df=annotated_df,
+            operation="median",
+            strata=strata_cols,
+        )
+        output(
+            df=aggregated_df,
+            output_filename=output_annotated_file,
+            output_type="parquet",
+        )
+        aggregate_seconds = time.time() - aggregate_start_time
 
-    # Step 2: Aggregation
-    # aggregate() only keeps `strata` columns plus the
-    # aggregated numeric features, dropping everything else. Rather than
-    # re-annotating the aggregated (well-level) data afterward to reattach
-    # platemap metadata, include every platemap-derived metadata column that's
-    # constant within a well directly in `strata`, so it survives aggregation
-    aggregate_start_time = time.time()
-    per_cell_cols = set(single_cell_df.columns)
-    candidate_metadata_cols = [
-        col for col in annotated_df.columns
-        if col.startswith("Metadata_")
-        and col not in ("Metadata_Plate", "Metadata_Well")
-        and col not in per_cell_cols
-    ]
-    strata_cols = ["Metadata_Plate", "Metadata_Well"] + [
-        col for col in candidate_metadata_cols
-        if annotated_df.groupby("Metadata_Well")[col].nunique(dropna=False).le(1).all()
-    ]
-    aggregated_df = aggregate(
-        population_df=annotated_df,
-        operation="median",
-        strata=strata_cols,
-    )
-    output(
-        df=aggregated_df,
-        output_filename=output_annotated_file,
-        output_type="parquet",
-    )
-    aggregate_seconds = time.time() - aggregate_start_time
+        # Clear memory
+        del single_cell_df, qc_df, platemap_df, annotated_df
+        gc.collect()
 
-    # Clear memory
-    del single_cell_df, qc_df, platemap_df, annotated_df
-    gc.collect()
+        # Step 3: Normalization (whole-plate) -- feed aggregate()'s own in-memory
+        # result directly instead of re-reading output_aggregated_file back off disk.
+        normalize_start_time = time.time()
+        normalize(
+            profiles=aggregated_df,
+            method="mad_robustize", # use robustize to avoid influence of outliers in the normalization
+            samples=neg_control_query, # normalize to negative controls only, not all wells (which would include compound wells)
+            output_file=output_normalized_file,
+            output_type="parquet",
+        )
+        normalize_seconds = time.time() - normalize_start_time
 
-    # Step 3: Normalization (whole-plate) -- feed aggregate()'s own in-memory
-    # result directly instead of re-reading output_aggregated_file back off disk.
-    normalize_start_time = time.time()
-    normalize(
-        profiles=aggregated_df,
-        method="mad_robustize", # use robustize to avoid influence of outliers in the normalization
-        samples=neg_control_query, # normalize to negative controls only, not all wells (which would include compound wells)
-        output_file=output_normalized_file,
-        output_type="parquet",
-    )
-    normalize_seconds = time.time() - normalize_start_time
+        # Clear memory
+        del aggregated_df
+        gc.collect()
 
-    # Clear memory
-    del aggregated_df
-    gc.collect()
+        # Step 4: Feature selection
+        feature_select_start_time = time.time()
+        feature_select(
+            output_normalized_file,
+            operation=feature_select_ops,
+            corr_threshold=0.90, # keep the same default value for correlation_threshold to be more strict as to identify the most informative features
+            freq_cut=0.05, # keep the same default value for freq_cut
+            unique_cut=0.01, # keep the same default value for unique_cut
+            na_cutoff=0, # update na_cutoff from default to 0 to remove any columns with any NaN values (best for downstream modeling)
+            output_file=output_feature_select_file,
+            output_type="parquet",
+        )
+        feature_select_seconds = time.time() - feature_select_start_time
 
-    # Step 4: Feature selection
-    feature_select_start_time = time.time()
-    feature_select(
-        output_normalized_file,
-        operation=feature_select_ops,
-        corr_threshold=0.90, # keep the same default value for correlation_threshold to be more strict as to identify the most informative features
-        freq_cut=0.05, # keep the same default value for freq_cut
-        unique_cut=0.01, # keep the same default value for unique_cut
-        na_cutoff=0, # update na_cutoff from default to 0 to remove any columns with any NaN values (best for downstream modeling)
-        output_file=output_feature_select_file,
-        output_type="parquet",
-    )
-    feature_select_seconds = time.time() - feature_select_start_time
+        total_seconds = time.time() - plate_start_time
+        print(
+            f"Bulk processing completed for {plate_id}! "
+            f"(annotate={annotate_seconds:.1f}s, aggregate={aggregate_seconds:.1f}s, "
+            f"normalize={normalize_seconds:.1f}s, feature_select={feature_select_seconds:.1f}s, "
+            f"total={total_seconds:.1f}s)"
+        )
 
-    total_seconds = time.time() - plate_start_time
-    print(
-        f"Bulk processing completed for {plate_id}! "
-        f"(annotate={annotate_seconds:.1f}s, aggregate={aggregate_seconds:.1f}s, "
-        f"normalize={normalize_seconds:.1f}s, feature_select={feature_select_seconds:.1f}s, "
-        f"total={total_seconds:.1f}s)"
-    )
-
-    # Record timing so per-plate performance can be compared across runs
-    write_header = not timing_log_path.exists()
-    with open(timing_log_path, "a", newline="") as f:
-        writer = csv.writer(f)
-        if write_header:
+        # Record timing so per-plate performance can be compared across runs
+        write_header = not timing_log_path.exists()
+        with open(timing_log_path, "a", newline="") as f:
+            writer = csv.writer(f)
+            if write_header:
+                writer.writerow(
+                    [
+                        "plate_id",
+                        "annotate_seconds",
+                        "aggregate_seconds",
+                        "normalize_seconds",
+                        "feature_select_seconds",
+                        "total_seconds",
+                        "timestamp",
+                    ]
+                )
             writer.writerow(
                 [
-                    "plate_id",
-                    "annotate_seconds",
-                    "aggregate_seconds",
-                    "normalize_seconds",
-                    "feature_select_seconds",
-                    "total_seconds",
-                    "timestamp",
+                    plate_id,
+                    f"{annotate_seconds:.1f}",
+                    f"{aggregate_seconds:.1f}",
+                    f"{normalize_seconds:.1f}",
+                    f"{feature_select_seconds:.1f}",
+                    f"{total_seconds:.1f}",
+                    datetime.now(timezone.utc).isoformat(timespec="seconds"),
                 ]
             )
-        writer.writerow(
-            [
-                plate_id,
-                f"{annotate_seconds:.1f}",
-                f"{aggregate_seconds:.1f}",
-                f"{normalize_seconds:.1f}",
-                f"{feature_select_seconds:.1f}",
-                f"{total_seconds:.1f}",
-                datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            ]
-        )
 
 
 # ## Spherizing step

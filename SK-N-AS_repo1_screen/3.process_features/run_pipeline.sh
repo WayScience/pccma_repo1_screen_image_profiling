@@ -151,7 +151,11 @@ done
 # pooled normalized profile -- there are no batches/replicate plate groups in
 # this screen -- then applies it once across the whole pooled screen, writing
 # a single spherized profile for the whole screen. Run once with PLATE_ID
-# unset, rather than per plate like the loop above.)
+# unset, rather than per plate like the loop above. SPHERING_ONLY=1 tells the
+# notebook to skip straight to the sphering step instead of also re-running
+# the per-plate bulk-processing loop for every plate a second time (which,
+# under OVERWRITE=1, would otherwise fully reprocess every ~55GB plate again
+# since the per-plate skip-if-exists check is disabled in that case).
 # -----------------------------
 echo "======================================"
 echo "Step 2b: 2.bulk_processing.ipynb (sphering, whole screen)"
@@ -163,7 +167,7 @@ if [ -f "$spherized_file" ] && [ -z "$overwrite" ]; then
     echo "✅ Whole-screen spherized profile already exists (${spherized_file})"
 else
     echo ">>> Running sphering for the whole screen"
-    OVERWRITE="$overwrite" python nbconverted/2.bulk_processing.py
+    SPHERING_ONLY=1 OVERWRITE="$overwrite" python nbconverted/2.bulk_processing.py
     exit_code=$?
 
     if [ "$exit_code" -ne 0 ]; then
