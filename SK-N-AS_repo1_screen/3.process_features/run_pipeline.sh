@@ -56,8 +56,14 @@ trap print_total_time EXIT
 # -----------------------------
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate pccma_repo1_preprocessing_env
-if [ $? -ne 0 ]; then
-    echo "Failed to activate conda env pccma_repo1_preprocessing_env; aborting."
+
+if ! command -v papermill >/dev/null 2>&1; then
+    echo "papermill not found on PATH after activating pccma_repo1_preprocessing_env; aborting."
+    exit 1
+fi
+
+if ! python -c "import pandas, pyarrow, pycytominer" >/dev/null 2>&1; then
+    echo "Active Python ($(command -v python)) is missing required packages (pandas/pyarrow/pycytominer); aborting."
     exit 1
 fi
 
