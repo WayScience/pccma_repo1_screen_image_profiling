@@ -1,4 +1,4 @@
-Plate Barcode,Well Position,Batch Id,Concentration (mg/mL),Concentration (ug/mL),Concentration (mM),Concentration (uM),Volume (uL),Volume (nL),Solvent,Formula Weight,Molecular Weight
+Plate_Barcode,Well_Position,Batch_Id,Concentration_mg/mL,Concentration_ug/mL,Concentration_mM,Concentration_uM,Volume_uL,Volume_nL,Solvent,Formula_Weight,Molecular_Weight
 BR00148940,A01,,,,,,0.0,0,,,
 BR00148940,A02,,,,,,0.04,40,DMSO,,
 BR00148940,A03,BRD-A10977446-001-12-1,4.064742,4064.742,10.0,10000.0,0.04,40,DMSO,406.4742,406.18925733

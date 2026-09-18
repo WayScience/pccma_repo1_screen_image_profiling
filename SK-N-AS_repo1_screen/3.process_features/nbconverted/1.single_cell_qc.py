@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 import pathlib
@@ -10,6 +10,7 @@ import time
 
 import matplotlib.pyplot as plt
 import pandas as pd
+import pyarrow.parquet as pq
 import seaborn as sns
 from cosmicqc import find_outliers, label_outliers
 from cytodataframe import CytoDataFrame
@@ -31,11 +32,22 @@ plate_id = "BR00148920"
 render_diagnostics = True
 
 
-# In[3]:
+# In[ ]:
 
 
-# Directory containing the converted profiles
-data_dir = pathlib.Path("/media/18tbdrive2/SK-N-AS_repo1_profiles/converted_profiles")
+# Directory containing the converted profiles. On Alpine (HPC), converted
+# profiles live on the PetaLibrary "koala" mount; locally they live on the
+# external drive since each plate's profile is tens of GB. Mirrors the same
+# Alpine-detection branch used for sqlite_dir in 0.convert_cytotable.ipynb.
+alpine_scratch_path = pathlib.Path("/scratch/alpine")
+
+if alpine_scratch_path.exists():
+    data_dir = pathlib.Path("/pl/active/koala/ALSF_screen_data/SK-N-AS_repo1_profiles/converted_profiles")
+else:
+    data_dir = pathlib.Path("/media/18tbdrive2/SK-N-AS_repo1_profiles/converted_profiles")
+
+if not data_dir.exists():
+    raise FileNotFoundError(f"The converted profiles path {data_dir} does not exist.")
 
 # Directory to save qc results from cosmicqc
 cleaned_dir = pathlib.Path("./data/qc_results")
@@ -92,7 +104,7 @@ needed_columns = metadata_columns + [
 ]
 
 
-# In[5]:
+# In[ ]:
 
 
 # Construct the file path for the given plate_id
@@ -101,8 +113,40 @@ file_path = data_dir / f"{plate_id}_converted.parquet"
 if file_path.exists():
     start_time = time.time()  # Start timer for loading
 
+    # A few plates' CytoTable conversion added a "Metadata_" prefix to the
+    # compartment location columns (e.g. Metadata_Nuclei_Location_Center_X
+    # instead of Nuclei_Location_Center_X) that most plates don't have.
+    # Resolve each needed column against this file's actual schema, falling
+    # back to the "Metadata_"-prefixed variant, so QC can run on either
+    # naming convention without changing needed_columns itself.
+    available_columns = set(pq.ParquetFile(file_path).schema_arrow.names)
+
+    def resolve_column(column: str) -> str:
+        if column in available_columns:
+            return column
+        prefixed_column = f"Metadata_{column}"
+        if prefixed_column in available_columns:
+            return prefixed_column
+        raise KeyError(
+            f"'{column}' not found in {file_path.name} (also checked '{prefixed_column}')"
+        )
+
+    columns_to_read = [resolve_column(column) for column in needed_columns]
+
     # Load the DataFrame with pandas
-    plate_df = pd.read_parquet(file_path, engine="pyarrow", columns=needed_columns)
+    plate_df = pd.read_parquet(file_path, engine="pyarrow", columns=columns_to_read)
+
+    # Normalize any columns read under their "Metadata_"-prefixed variant back
+    # to the canonical (unprefixed) name, so every cell below can rely on
+    # needed_columns' names regardless of which naming convention this
+    # plate's conversion produced.
+    plate_df = plate_df.rename(
+        columns={
+            read_name: canonical_name
+            for canonical_name, read_name in zip(needed_columns, columns_to_read)
+            if read_name != canonical_name
+        }
+    )
 
     end_time = time.time()  # End timer for loading
     print(

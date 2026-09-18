@@ -1,12 +1,21 @@
 #!/bin/bash
 #
 # Run the full feature-processing pipeline, in order:
-#   1.single_cell_qc.ipynb          -> one QC-annotations parquet per plate (via papermill,
-#                                      which keeps the executed notebook per plate for review)
-#   2.bulk_processing.ipynb         -> aggregated/annotated/normalized/feature-selected bulk profiles
-#                                      (via nbconverted script, one plate/process at a time)
-#   3.single_cell_processing.ipynb  -> annotated/normalized/feature-selected single-cell profiles
-#                                      (via nbconverted script, one plate/process at a time)
+#   1.single_cell_qc.ipynb              -> one QC-annotations parquet per plate (via papermill,
+#                                          which keeps the executed notebook per plate for review)
+#   2.annotate.ipynb                    -> one annotated single-cell profile per plate, shared
+#                                          input for both branches below (via nbconverted script,
+#                                          one plate/process at a time)
+#   3.bulk_processing.ipynb             -> aggregated/normalized/feature-selected bulk profiles
+#                                          (via nbconverted script, one plate/process at a time)
+#   3b.sphering.ipynb                   -> whole-screen sphering step, once every plate has been
+#                                          bulk-processed (via nbconverted script, a single process
+#                                          -- split out of 3.bulk_processing.ipynb so it can be
+#                                          invoked directly instead of via a SPHERING_ONLY flag)
+#   4.single_cell_normalize.ipynb       -> normalized single-cell profiles (via nbconverted
+#                                          script, one plate/process at a time)
+#   5.single_cell_feature_select.ipynb  -> feature-selected single-cell profiles (via nbconverted
+#                                          script, one plate/process at a time)
 #
 # Unlike CHP-134_repo1_screen's run_pipeline.sh, there is no merge_profiles
 # step here: 0.convert_cytotable.ipynb (run separately, via
@@ -14,15 +23,27 @@
 # writes one converted parquet per plate directly to the external drive,
 # with no row-batch chunks to stitch together first.
 #
-# Steps 2 and 3 run one plate per `python` invocation (PLATE_ID env var) rather
-# than looping over all plates inside a single long-lived process. Each plate's
-# memory is fully released back to the OS when its process exits, which avoids
-# the cross-plate memory buildup that can otherwise lead to an OOM kill partway
-# through a batch. This matters even more here than for CHP-134, since each
-# SK-N-AS plate (~55GB, 2.17M cells) is roughly 3x the size of a CHP-134 plate.
+# Annotation used to be duplicated -- once inside bulk processing, once inside
+# single-cell processing -- so it ran (and held both a plate's raw profile and
+# its annotated copy in memory at once, each tens of GB) twice per plate. It's
+# now its own step (2.annotate.ipynb) that both downstream branches read from,
+# so that memory-heavy merge only happens once per plate.
 #
-# Each plate's per-stage timing (and a total) is appended to
-# data/bulk_profiles/timing_log.csv and data/single_cell_profiles/timing_log.csv.
+# Steps 2, 3, 4, and 5 all run one plate per `python` invocation (PLATE_ID env
+# var) rather than looping over all plates inside a single long-lived process.
+# Each plate's memory is fully released back to the OS when its process
+# exits, which avoids the cross-plate memory buildup that can otherwise lead
+# to an OOM kill partway through a batch. This matters even more here than
+# for CHP-134, since each SK-N-AS plate (~55GB, 2.17M cells) is roughly 3x the
+# size of a CHP-134 plate -- a single plate's raw profile alone has been
+# measured at ~97GB in memory, so isolating each stage to its own process is
+# load-bearing, not just a nice-to-have.
+#
+# Each plate's per-stage timing (and a total) is appended to a timing_log.csv
+# under that step's output directory (data/annotated_profiles,
+# data/bulk_profiles, or data/single_cell_profiles -- the latter split into
+# timing_log_normalize.csv and timing_log_feature_select.csv since steps 4
+# and 5 run as separate processes).
 #
 # By default, every step skips a plate that already has output. Set
 # OVERWRITE=1 (e.g. `OVERWRITE=1 ./run_pipeline.sh`) to reprocess and
@@ -125,11 +146,40 @@ for plate_id in "${plate_ids[@]}"; do
 done
 
 # -----------------------------
-# Step 2: bulk processing (one plate/process at a time; skips plates without
-# QC, and already-processed plates)
+# Step 2: annotation (one plate/process at a time; skips plates without QC,
+# and already-annotated plates). Shared input for both the bulk and
+# single-cell branches below, so annotate() only runs once per plate.
 # -----------------------------
 echo "======================================"
-echo "Step 2: 2.bulk_processing.ipynb (one plate at a time)"
+echo "Step 2: 2.annotate.ipynb (one plate at a time)"
+echo "======================================"
+
+for plate_id in "${plate_ids[@]}"; do
+    annotate_output="./data/annotated_profiles/${plate_id}_annotated.parquet"
+
+    if [ -f "$annotate_output" ] && [ -z "$overwrite" ]; then
+        echo "✅ ${plate_id} already annotated (found ${annotate_output})"
+        continue
+    fi
+
+    echo ">>> Running annotation for ${plate_id}"
+    PLATE_ID="$plate_id" OVERWRITE="$overwrite" python nbconverted/2.annotate.py
+    exit_code=$?
+
+    if [ "$exit_code" -ne 0 ]; then
+        echo "Annotation FAILED for plate: ${plate_id} (exit code $exit_code)"
+        failed_plates+=("annotate:${plate_id}")
+    else
+        echo "Annotation done for plate: ${plate_id}"
+    fi
+done
+
+# -----------------------------
+# Step 3: bulk processing (one plate/process at a time; skips plates without
+# an annotated profile, and already-processed plates)
+# -----------------------------
+echo "======================================"
+echo "Step 3: 3.bulk_processing.ipynb (one plate at a time)"
 echo "======================================"
 
 for plate_id in "${plate_ids[@]}"; do
@@ -141,7 +191,7 @@ for plate_id in "${plate_ids[@]}"; do
     fi
 
     echo ">>> Running bulk processing for ${plate_id}"
-    PLATE_ID="$plate_id" OVERWRITE="$overwrite" python nbconverted/2.bulk_processing.py
+    PLATE_ID="$plate_id" OVERWRITE="$overwrite" python nbconverted/3.bulk_processing.py
     exit_code=$?
 
     if [ "$exit_code" -ne 0 ]; then
@@ -153,18 +203,16 @@ for plate_id in "${plate_ids[@]}"; do
 done
 
 # -----------------------------
-# Step 2b: sphering (fits the whitening transform once on every plate's
+# Step 3b: sphering (fits the whitening transform once on every plate's
 # pooled normalized profile -- there are no batches/replicate plate groups in
 # this screen -- then applies it once across the whole pooled screen, writing
-# a single spherized profile for the whole screen. Run once with PLATE_ID
-# unset, rather than per plate like the loop above. SPHERING_ONLY=1 tells the
-# notebook to skip straight to the sphering step instead of also re-running
-# the per-plate bulk-processing loop for every plate a second time (which,
-# under OVERWRITE=1, would otherwise fully reprocess every ~55GB plate again
-# since the per-plate skip-if-exists check is disabled in that case).
+# a single spherized profile for the whole screen. Its own notebook/script
+# (3b.sphering.ipynb), split out of 3.bulk_processing.ipynb, so it can be
+# invoked directly here rather than needing a SPHERING_ONLY flag to skip that
+# script's per-plate loop.
 # -----------------------------
 echo "======================================"
-echo "Step 2b: 2.bulk_processing.ipynb (sphering, whole screen)"
+echo "Step 3b: 3b.sphering.ipynb (whole screen)"
 echo "======================================"
 
 spherized_file="./data/spherized_profiles/SK-N-AS_repo1_screen_pooled_bulk_spherized.parquet"
@@ -173,7 +221,7 @@ if [ -f "$spherized_file" ] && [ -z "$overwrite" ]; then
     echo "✅ Whole-screen spherized profile already exists (${spherized_file})"
 else
     echo ">>> Running sphering for the whole screen"
-    SPHERING_ONLY=1 OVERWRITE="$overwrite" python nbconverted/2.bulk_processing.py
+    OVERWRITE="$overwrite" python nbconverted/3b.sphering.py
     exit_code=$?
 
     if [ "$exit_code" -ne 0 ]; then
@@ -185,11 +233,39 @@ else
 fi
 
 # -----------------------------
-# Step 3: single-cell processing (one plate/process at a time; skips plates
-# without QC, and already-processed plates)
+# Step 4: single-cell normalization (one plate/process at a time; skips
+# plates without an annotated profile, and already-normalized plates)
 # -----------------------------
 echo "======================================"
-echo "Step 3: 3.single_cell_processing.ipynb (one plate at a time)"
+echo "Step 4: 4.single_cell_normalize.ipynb (one plate at a time)"
+echo "======================================"
+
+for plate_id in "${plate_ids[@]}"; do
+    sc_normalized_output="./data/single_cell_profiles/${plate_id}_sc_normalized.parquet"
+
+    if [ -f "$sc_normalized_output" ] && [ -z "$overwrite" ]; then
+        echo "✅ ${plate_id} already normalized (found ${sc_normalized_output})"
+        continue
+    fi
+
+    echo ">>> Running single-cell normalization for ${plate_id}"
+    PLATE_ID="$plate_id" OVERWRITE="$overwrite" python nbconverted/4.single_cell_normalize.py
+    exit_code=$?
+
+    if [ "$exit_code" -ne 0 ]; then
+        echo "Single-cell normalization FAILED for plate: ${plate_id} (exit code $exit_code)"
+        failed_plates+=("single_cell_normalize:${plate_id}")
+    else
+        echo "Single-cell normalization done for plate: ${plate_id}"
+    fi
+done
+
+# -----------------------------
+# Step 5: single-cell feature selection (one plate/process at a time; skips
+# plates without a normalized profile, and already-processed plates)
+# -----------------------------
+echo "======================================"
+echo "Step 5: 5.single_cell_feature_select.ipynb (one plate at a time)"
 echo "======================================"
 
 for plate_id in "${plate_ids[@]}"; do
@@ -200,15 +276,15 @@ for plate_id in "${plate_ids[@]}"; do
         continue
     fi
 
-    echo ">>> Running single-cell processing for ${plate_id}"
-    PLATE_ID="$plate_id" OVERWRITE="$overwrite" python nbconverted/3.single_cell_processing.py
+    echo ">>> Running single-cell feature selection for ${plate_id}"
+    PLATE_ID="$plate_id" OVERWRITE="$overwrite" python nbconverted/5.single_cell_feature_select.py
     exit_code=$?
 
     if [ "$exit_code" -ne 0 ]; then
-        echo "Single-cell processing FAILED for plate: ${plate_id} (exit code $exit_code)"
-        failed_plates+=("single_cell_processing:${plate_id}")
+        echo "Single-cell feature selection FAILED for plate: ${plate_id} (exit code $exit_code)"
+        failed_plates+=("single_cell_feature_select:${plate_id}")
     else
-        echo "Single-cell processing done for plate: ${plate_id}"
+        echo "Single-cell feature selection done for plate: ${plate_id}"
     fi
 done
 
