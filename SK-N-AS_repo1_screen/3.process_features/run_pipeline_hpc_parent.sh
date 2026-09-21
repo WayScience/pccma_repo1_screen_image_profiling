@@ -31,6 +31,22 @@ fi
 
 mapfile -t plate_ids < <(find "$converted_dir" -maxdepth 1 -name "*_converted.parquet" -printf "%f\n" | sed 's/_converted\.parquet$//' | sort)
 
+# optionally skip plates that are already finished, so they don't take up a
+# job (each child requests a full node's worth of memory just to print
+# "Skipping"). Expects a pace-separated list
+exclude_plates="${EXCLUDE_PLATES:-}"
+if [ -n "$exclude_plates" ]; then
+    filtered_plate_ids=()
+    for plate_id in "${plate_ids[@]}"; do
+        if [[ " $exclude_plates " == *" $plate_id "* ]]; then
+            echo "Excluding: $plate_id"
+        else
+            filtered_plate_ids+=("$plate_id")
+        fi
+    done
+    plate_ids=("${filtered_plate_ids[@]}")
+fi
+
 echo "Number of plates found: ${#plate_ids[@]}"
 for plate_id in "${plate_ids[@]}"; do
     echo "Found: $plate_id"
