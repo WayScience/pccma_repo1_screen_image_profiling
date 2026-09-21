@@ -92,6 +92,10 @@ plate_names
 # Create plate info dictionary
 plate_info_dictionary = {
     plate_id: {
+        # Raw converted profile, only used for a metadata-only schema read
+        # (see per_cell_cols below)
+        "profile_path": str(converted_dir / f"{plate_id}_converted.parquet"),
+
         # Annotated profiles are produced per-plate by 2.annotate.ipynb
         "annotated_path": (
             str((annotated_dir / f"{plate_id}_annotated.parquet").resolve())

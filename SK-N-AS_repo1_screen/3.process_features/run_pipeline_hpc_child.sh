@@ -2,10 +2,10 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --partition=acpu
-#SBATCH --qos=cpu-long
+#SBATCH --qos=cpu-normal
 #SBATCH --account=amc-general
 #SBATCH --mem=256G
-#SBATCH --time=2-00:00:00
+#SBATCH --time=04:00:00
 #SBATCH --output=run_pipeline_child-%j.out
 
 # activate preprocessing environment
