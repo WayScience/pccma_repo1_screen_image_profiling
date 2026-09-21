@@ -5,7 +5,7 @@
 #SBATCH --qos=cpu-normal
 #SBATCH --account=amc-general
 #SBATCH --mem=256G
-#SBATCH --time=04:00:00
+#SBATCH --time=03:00:00
 #SBATCH --output=run_pipeline_child-%j.out
 
 # activate preprocessing environment
