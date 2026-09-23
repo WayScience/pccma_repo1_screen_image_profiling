@@ -23,11 +23,28 @@ from pycytominer import feature_select, normalize
 
 # ## Set paths and variables
 
-# In[ ]:
+# In[2]:
 
 
-# Directory containing per-plate bulk profiles from 3.bulk_processing.ipynb
-output_dir = pathlib.Path("./data/bulk_profiles")
+# Directory containing per-plate bulk profiles from 3.bulk_processing.ipynb.
+# Bulk processing runs on HPC, so its output isn't synced back into this repo
+# checkout by default -- prefer this repo's local data/bulk_profiles dir if
+# it's already been populated (e.g. copied down manually), and fall back to
+# the bandicoot network mount otherwise.
+local_bulk_dir = pathlib.Path("./data/bulk_profiles")
+bandicoot_bulk_dir = pathlib.Path(
+    "~/mnt/bandicoot/PCCMA_data/SK-N-AS_repo1_profiles/bulk_profiles"
+).expanduser()
+
+if any(local_bulk_dir.glob("*_bulk_normalized.parquet")):
+    output_dir = local_bulk_dir
+else:
+    output_dir = bandicoot_bulk_dir
+
+if not output_dir.exists():
+    raise FileNotFoundError(f"The bulk profiles path {output_dir} does not exist.")
+
+print(f"Reading bulk profiles from: {output_dir}")
 
 # Wells with no compound (`Metadata_Batch_Id` is blank) that still received
 # the DMSO vehicle are the negative controls
@@ -56,7 +73,7 @@ output_spherized_file = spherized_output_dir / "SK-N-AS_repo1_screen_pooled_bulk
 
 # ## Run configuration
 
-# In[ ]:
+# In[3]:
 
 
 # Run configuration, driven by an environment variable so run_pipeline.sh (or
@@ -70,7 +87,7 @@ overwrite = os.environ.get("OVERWRITE", "").strip().lower() in ("1", "true", "ye
 
 # ## Sphering step
 
-# In[ ]:
+# In[4]:
 
 
 if output_spherized_file.exists() and not overwrite:
