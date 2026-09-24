@@ -1,0 +1,91 @@
+indication,organ,display_name
+hypertension,heart,Hypertension
+skin infections,skin,Skin infections
+urinary tract infections,urinary_bladder,Urinary tract infections
+rheumatoid arthritis,cartilage,Rheumatoid arthritis
+allergic rhinitis,nose,Allergic rhinitis
+gram-negative bacterial infections,none,Gram-negative bacterial infections
+depression,brain,Depression
+pneumonia,lung,Pneumonia
+asthma,lung,Asthma
+schizophrenia,brain,Schizophrenia
+congestive heart failure,heart,Congestive heart failure
+diabetes mellitus,pancreas,Diabetes mellitus
+osteoarthritis,cartilage,Osteoarthritis
+bronchitis,lung,Bronchitis
+pain relief,none,Pain relief
+parkinson's disease,brain,Parkinson's disease
+respiratory tract infections,lung,Respiratory tract infections
+human immunodeficiency virus (hiv-1),none,HIV-1
+gram-positive bacterial infections,none,Gram-positive bacterial infections
+breast cancer,breast,Breast cancer
+conjunctivitis,eye,Conjunctivitis
+glaucoma,eye,Glaucoma
+nausea,stomach,Nausea
+corticosteroid-responsive dermatoses,skin,Corticosteroid-responsive dermatoses
+peptic ulcer disease (pud),stomach,Peptic ulcer disease
+vomiting,stomach,Vomiting
+angina pectoris,heart,Angina pectoris
+intra-abdominal infections,none,Intra-abdominal infections
+psoriasis,skin,Psoriasis
+contraceptive,none,Contraceptive
+malaria,none,Malaria
+ulcerative colitis,colon,Ulcerative colitis
+myocardial infarction,heart,Myocardial infarction
+meningitis,brain,Meningitis
+diarrhea,colon,Diarrhea
+fever,none,Fever
+anxiety,brain,Anxiety
+hepatitis c,liver,Hepatitis C
+stroke,brain,Stroke
+irritable bowel syndrome,colon,Irritable bowel syndrome
+muscle relaxant,skeletal_muscle,Muscle relaxant
+cosmetic,none,Cosmetic
+tuberculosis,lung,Tuberculosis
+multiple sclerosis,brain,Multiple sclerosis
+seizures,brain,Seizures
+prostate cancer,prostate,Prostate cancer
+migraine headache,brain,Migraine headache
+enteritis,small_intestine,Enteritis
+urticaria,skin,Urticaria
+constipation,colon,Constipation
+cough suppressant,throat,Cough suppressant
+eczema,skin,Eczema
+edema,none,Edema
+sunscreen lotion,skin,Sunscreen lotion
+menopause,none,Menopause
+non-small cell lung cancer (nsclc),lung,Non-small cell lung cancer
+spasms,none,Spasms
+cardiac arrythmia,heart,Cardiac arrhythmia
+osteoporosis,bone,Osteoporosis
+intraocular pressure,eye,Intraocular pressure
+muscle pain,skeletal_muscle,Muscle pain
+sinusitis,nose,Sinusitis
+coccidiosis,none,Coccidiosis
+atrial fibrillation (af),heart,Atrial fibrillation
+acne vulgaris (av),skin,Acne vulgaris
+otitis,none,Otitis
+bacterial septicemia,none,Bacterial septicemia
+sedative,brain,Sedative
+coronary artery disease (cad),heart,Coronary artery disease
+hepatitis b,liver,Hepatitis B
+chronic obstructive pulmonary disease (copd),lung,COPD
+bipolar disorder,brain,Bipolar disorder
+tonsillitis,tonsil,Tonsillitis
+bone and joint infections,bone,Bone and joint infections
+senile dementia,brain,Senile dementia
+fungal infection,none,Fungal infection
+tinea pedis,skin,Tinea pedis
+hyperlipidemia,none,Hyperlipidemia
+multiple myeloma,bone_marrow,Multiple myeloma
+acute lymphoblastic leukemia (all),bone_marrow,Acute lymphoblastic leukemia
+anesthetic,none,Anesthetic
+ventricular arrhythmias,heart,Ventricular arrhythmias
+pharyngitis,throat,Pharyngitis
+ocular hypertension,eye,Ocular hypertension
+contrast agent,none,Contrast agent
+hypercalcemia,none,Hypercalcemia
+anemia,bone_marrow,Anemia
+epilepsy,brain,Epilepsy
+gastroesophageal reflux disease (gerd),esophagus,Gastroesophageal reflux disease
+first-aid antibiotic,skin,First-aid antibiotic
