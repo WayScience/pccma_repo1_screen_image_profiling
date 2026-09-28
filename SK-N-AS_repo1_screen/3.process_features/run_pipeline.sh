@@ -1,21 +1,14 @@
 #!/bin/bash
 #
 # Run the full feature-processing pipeline, in order:
-#   1.single_cell_qc.ipynb              -> one QC-annotations parquet per plate (via papermill,
-#                                          which keeps the executed notebook per plate for review)
-#   2.annotate.ipynb                    -> one annotated single-cell profile per plate, shared
-#                                          input for both branches below (via nbconverted script,
+#   1.single_cell_qc.ipynb              -> one QC-annotations parquet per plate (via papermill,#                                          which keeps the executed notebook per plate for review)
+#   2.annotate.ipynb                    -> one annotated single-cell profile per plate, shared#                                          input for both branches below (via nbconverted script,
 #                                          one plate/process at a time)
-#   3.bulk_processing.ipynb             -> per-plate aggregated (un-normalized) bulk profiles
-#                                          (via nbconverted script, one plate/process at a time)
-#   3b.pooled_bulk_processing.ipynb     -> whole-screen processing of the pooled per-plate aggregated
-#                                          profiles in the JUMP recipe's way (variant filter, MAD,
+#   3.aggregate_bulk_profiles.ipynb     -> per-plate aggregated (un-normalized) bulk profiles#                                          (via nbconverted script, one plate/process at a time)
+#   3b.pooled_bulk_processing.ipynb     -> whole-screen processing of the pooled per-plate aggregated#                                          profiles in the JUMP recipe's way (variant filter, MAD,
 #                                          inverse normal transform, feature selection)
-#   3c.sphering.ipynb                   -> whole-screen sphering of that pooled profile
-#   4.single_cell_normalize.ipynb       -> normalized single-cell profiles (via nbconverted
-#                                          script, one plate/process at a time)
-#   5.single_cell_feature_select.ipynb  -> feature-selected single-cell profiles (via nbconverted
-#                                          script, one plate/process at a time)
+#   3c.sphering.ipynb                   -> whole-screen sphering of that pooled profile#   4.single_cell_normalize.ipynb       -> normalized single-cell profiles (via nbconverted#                                          script, one plate/process at a time)
+#   5.single_cell_feature_select.ipynb  -> feature-selected single-cell profiles (via nbconverted#                                          script, one plate/process at a time)
 #
 # Unlike CHP-134_repo1_screen's run_pipeline.sh, there is no merge_profiles
 # step here: 0.convert_cytotable.ipynb (run separately, via
@@ -175,30 +168,30 @@ for plate_id in "${plate_ids[@]}"; do
 done
 
 # -----------------------------
-# Step 3: bulk processing (one plate/process at a time; skips plates without
+# Step 3: aggregation (one plate/process at a time; skips plates without
 # an annotated profile, and already-processed plates)
 # -----------------------------
 echo "======================================"
-echo "Step 3: 3.bulk_processing.ipynb (one plate at a time)"
+echo "Step 3: 3.aggregate_bulk_profiles.ipynb (one plate at a time)"
 echo "======================================"
 
 for plate_id in "${plate_ids[@]}"; do
     bulk_output="./data/bulk_profiles/${plate_id}_bulk_aggregated.parquet"
 
     if [ -f "$bulk_output" ] && [ -z "$overwrite" ]; then
-        echo "✅ ${plate_id} already bulk-processed (found ${bulk_output})"
+        echo "✅ ${plate_id} already aggregated (found ${bulk_output})"
         continue
     fi
 
-    echo ">>> Running bulk processing for ${plate_id}"
-    PLATE_ID="$plate_id" OVERWRITE="$overwrite" python nbconverted/3.bulk_processing.py
+    echo ">>> Running aggregation for ${plate_id}"
+    PLATE_ID="$plate_id" OVERWRITE="$overwrite" python nbconverted/3.aggregate_bulk_profiles.py
     exit_code=$?
 
     if [ "$exit_code" -ne 0 ]; then
-        echo "Bulk processing FAILED for plate: ${plate_id} (exit code $exit_code)"
-        failed_plates+=("bulk_processing:${plate_id}")
+        echo "Aggregation FAILED for plate: ${plate_id} (exit code $exit_code)"
+        failed_plates+=("aggregate:${plate_id}")
     else
-        echo "Bulk processing done for plate: ${plate_id}"
+        echo "Aggregation done for plate: ${plate_id}"
     fi
 done
 

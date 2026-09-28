@@ -47,12 +47,13 @@ if [ $? -ne 0 ]; then
     failed_steps+=("annotate")
 fi
 
-# Step 3: bulk processing (per-plate aggregate/normalize/feature-select --
-# sphering is not run here; run 3b.sphering.ipynb locally instead)
-PLATE_ID="$plate_id" OVERWRITE="$overwrite" python nbconverted/3.bulk_processing.py
+# Step 3: aggregation (per-plate only -- the whole-screen steps that follow,
+# 3b.pooled_bulk_processing.ipynb and 3c.sphering.ipynb, are not run here; run
+# them locally instead, once every plate's aggregated profile is in)
+PLATE_ID="$plate_id" OVERWRITE="$overwrite" python nbconverted/3.aggregate_bulk_profiles.py
 if [ $? -ne 0 ]; then
-    echo "Bulk processing FAILED for plate: $plate_id"
-    failed_steps+=("bulk_processing")
+    echo "Aggregation FAILED for plate: $plate_id"
+    failed_steps+=("aggregate")
 fi
 
 # Step 4: single-cell normalization
