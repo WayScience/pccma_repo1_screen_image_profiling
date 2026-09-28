@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # Process bulk profiles
+# # Aggregate bulk profiles
 # 
-# > NOTE: For bulk profiles, we normalize to the negative controls and use MAD robustize as the "standard".
+# Aggregates each plate's cleaned single cells to one profile per well (the median of the cells) and writes it to `data/bulk_profiles/<plate>_bulk_aggregated.parquet`. These per-plate, un-normalized profiles are the input of `3b.pooled_bulk_processing.ipynb`, where normalization and feature selection happen once over the whole screen.
 
 # ## Import libraries
 
@@ -19,7 +19,7 @@ import time
 from datetime import datetime, timezone
 
 import pandas as pd
-from pycytominer import aggregate, annotate, feature_select, normalize
+from pycytominer import aggregate, annotate
 from pycytominer.cyto_utils import output
 
 
@@ -52,24 +52,6 @@ barcode_platemap["Plate Barcode"] = barcode_platemap["Plate Barcode"].str.replac
 
 # extract the plate names from the merged profile file names
 plate_names = sorted(file.stem for file in merged_dir.glob("*.parquet"))
-
-# Wells with no compound (`Metadata_Batch_Id` is blank) that still received
-# the DMSO vehicle are the negative controls
-neg_control_query = 'Metadata_Batch_Id.isna() and Metadata_Solvent == "DMSO"'
-
-# operations to perform for feature selection
-# NOTE: drop_na_columns runs before correlation_threshold on purpose. Several
-# Costes correlation features are NaN for some cells, and pycytominer's
-# correlation_threshold falls back to a much slower NaN-aware pandas .corr()
-# (instead of a fast BLAS np.corrcoef) if any NaNs are still present in the
-# feature columns it's given. Dropping NaN columns first keeps it on the fast path.
-feature_select_ops = [
-    "drop_na_columns",
-    "blocklist", # default block list uses same standard CP naming convention
-    "frequency_threshold",
-    "variance_threshold",
-    "correlation_threshold",
-]
 
 plate_names
 
@@ -150,17 +132,13 @@ for plate_id, info in plate_info_dictionary.items():
         print(f"Skipping {plate_id}: no platemap found in barcode_platemap.csv")
         continue
 
-    # Output file paths for each file
-    output_annotated_file = str(output_dir / f"{plate_id}_bulk_annotated.parquet")
-    output_normalized_file = str(output_dir / f"{plate_id}_bulk_normalized.parquet")
-    output_feature_select_file = str(
-        output_dir / f"{plate_id}_bulk_feature_selected.parquet"
-    )
+    # Output file path
+    output_aggregated_file = str(output_dir / f"{plate_id}_bulk_aggregated.parquet")
 
-    # Already fully processed, so this plate can safely be skipped on a rerun
+    # Already aggregated, so this plate can safely be skipped on a rerun
     # (unless OVERWRITE is set, in which case it's reprocessed regardless)
-    if pathlib.Path(output_feature_select_file).exists() and not overwrite:
-        print(f"Skipping {plate_id}: already processed (found {output_feature_select_file})")
+    if pathlib.Path(output_aggregated_file).exists() and not overwrite:
+        print(f"Skipping {plate_id}: already processed (found {output_aggregated_file})")
         continue
 
     print(f"Now performing pycytominer pipeline for {plate_id}")
@@ -223,7 +201,7 @@ for plate_id, info in plate_info_dictionary.items():
     )
     output(
         df=aggregated_df,
-        output_filename=output_annotated_file,
+        output_filename=output_aggregated_file,
         output_type="parquet",
     )
     aggregate_seconds = time.time() - aggregate_start_time
@@ -231,42 +209,13 @@ for plate_id, info in plate_info_dictionary.items():
     # Clear memory
     del single_cell_df, qc_df, platemap_df, annotated_df
     gc.collect()
-
-    # Step 3: Normalization (whole-plate) -- feed aggregate()'s own in-memory
-    # result directly instead of re-reading output_aggregated_file back off disk.
-    normalize_start_time = time.time()
-    normalize(
-        profiles=aggregated_df,
-        method="mad_robustize", # use robustize to avoid influence of outliers in the normalization
-        samples=neg_control_query, # normalize to negative controls only, not all wells (which would include compound wells)
-        output_file=output_normalized_file,
-        output_type="parquet",
-    )
-    normalize_seconds = time.time() - normalize_start_time
-
-    # Clear memory
     del aggregated_df
     gc.collect()
 
-    # Step 4: Feature selection
-    feature_select_start_time = time.time()
-    feature_select(
-        output_normalized_file,
-        operation=feature_select_ops,
-        corr_threshold=0.90, # keep the same default value for correlation_threshold to be more strict as to identify the most informative features
-        freq_cut=0.05, # keep the same default value for freq_cut
-        unique_cut=0.01, # keep the same default value for unique_cut
-        na_cutoff=0, # update na_cutoff from default to 0 to remove any columns with any NaN values (best for downstream modeling)
-        output_file=output_feature_select_file,
-        output_type="parquet",
-    )
-    feature_select_seconds = time.time() - feature_select_start_time
-
     total_seconds = time.time() - plate_start_time
     print(
-        f"Bulk processing completed for {plate_id}! "
+        f"Bulk aggregation completed for {plate_id}! "
         f"(annotate={annotate_seconds:.1f}s, aggregate={aggregate_seconds:.1f}s, "
-        f"normalize={normalize_seconds:.1f}s, feature_select={feature_select_seconds:.1f}s, "
         f"total={total_seconds:.1f}s)"
     )
 
@@ -275,123 +224,14 @@ for plate_id, info in plate_info_dictionary.items():
     with open(timing_log_path, "a", newline="") as f:
         writer = csv.writer(f)
         if write_header:
-            writer.writerow(
-                [
-                    "plate_id",
-                    "annotate_seconds",
-                    "aggregate_seconds",
-                    "normalize_seconds",
-                    "feature_select_seconds",
-                    "total_seconds",
-                    "timestamp",
-                ]
-            )
+            writer.writerow(["plate_id", "annotate_seconds", "aggregate_seconds", "total_seconds", "timestamp"])
         writer.writerow(
             [
                 plate_id,
                 f"{annotate_seconds:.1f}",
                 f"{aggregate_seconds:.1f}",
-                f"{normalize_seconds:.1f}",
-                f"{feature_select_seconds:.1f}",
                 f"{total_seconds:.1f}",
                 datetime.now(timezone.utc).isoformat(timespec="seconds"),
             ]
         )
-
-
-# ## Spherizing step
-# 
-# Adapted from Erik Serrano's work in the [fibrosis drug screen repository](https://github.com/WayScience/targeted_fibrosis_drug_screen/)
-
-# In[ ]:
-
-
-# Unlike the source pipeline this step was adapted from, CHP-134 has no
-# batches / replicate plate groups to pool -- it's just one screen. So instead
-# of looping per plate map and pooling that plate map's replicate plates,
-# feature selection and the sphering fit/transform are all done once across
-# every plate's pooled normalized profile, producing a single spherized
-# profile for the whole screen (not one per plate).
-
-spherized_output_dir = pathlib.Path("./data/spherized_profiles")
-spherized_output_dir.mkdir(parents=True, exist_ok=True)
-
-pooled_feature_select_file = output_dir / "SK-N-AS_repo1_screen_pooled_bulk_feature_selected.parquet"
-output_spherized_file = spherized_output_dir / "SK-N-AS_repo1_screen_pooled_bulk_spherized.parquet"
-
-
-# In[ ]:
-
-
-if plate_id_filter:
-    # Sphering needs every plate's normalized profile pooled together, so it
-    # can't run off the single-plate slice of plate_info_dictionary that
-    # PLATE_ID leaves in place -- skip until run with PLATE_ID unset.
-    print(
-        f"Skipping sphering: PLATE_ID={plate_id_filter} is set, so only one "
-        "plate's data is loaded. Rerun with PLATE_ID unset once every plate "
-        "has been bulk-processed."
-    )
-elif output_spherized_file.exists() and not overwrite:
-    print(f"Skipping sphering: already spherized (found {output_spherized_file})")
-else:
-    normalized_paths = sorted(output_dir.glob("*_bulk_normalized.parquet"))
-
-    print(f"Pooling {len(normalized_paths)} plates for sphering...")
-
-    # step 1: concat every plate's normalized profile before feature selection
-    concat_df = pd.concat(
-        [pd.read_parquet(path) for path in normalized_paths],
-        ignore_index=True,
-    ).reset_index(drop=True)
-
-    # Update any "Assay" plate strings to include underscores to match format
-    # of other plates strings in the same file
-    concat_df["Metadata_Plate"] = concat_df["Metadata_Plate"].str.replace(
-        " ", "_", regex=False
-    )
-
-    # step 2a: Apply feature selection across the pooled screen to get a
-    # common set of features for sphering.
-    print("Feature selecting pooled screen...")
-    feature_select_df = feature_select(
-        profiles=concat_df,
-        operation=feature_select_ops,
-        na_cutoff=0, # updated from default to 0 to remove any columns with any NaN values (best for downstream modeling)
-        corr_threshold=0.95, # increased from default to 0.95 to be more strict as to identify the most informative features
-        freq_cut=0.05, # same as default
-        output_file=pooled_feature_select_file,
-        output_type="parquet",
-    )
-
-    # step 2b: Remove features with too little variation inside the exact
-    # control population used to fit spherization.
-    print(
-        "Feature selecting pooled screen with frequency threshold within "
-        "negative controls only..."
-    )
-    zero_negcon_var_fs_df = feature_select(
-        profiles=feature_select_df,
-        operation="frequency_threshold",
-        freq_cut=0.05, # same as default
-        unique_cut=0.01, # same as default
-        samples=neg_control_query,
-    )
-
-    # step 3: Spherize/whiten the whole pooled screen using the pooled
-    # negative controls as the reference population
-    print("Sphering pooled screen using pooled negative controls...")
-    normalize(
-        profiles=zero_negcon_var_fs_df,
-        method="spherize",
-        samples=neg_control_query,
-        spherize_center=True,
-        spherize_method="ZCA-cor", # same as default
-        spherize_epsilon=1e-6, #same as default
-        output_file=output_spherized_file,
-        output_type="parquet",
-    )
-
-    print(f"Saved feature-selected profiles to {pooled_feature_select_file}")
-    print(f"Saved whole-screen spherized profile to {output_spherized_file}")
 

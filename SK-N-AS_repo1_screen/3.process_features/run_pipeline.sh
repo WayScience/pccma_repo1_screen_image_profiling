@@ -6,12 +6,12 @@
 #   2.annotate.ipynb                    -> one annotated single-cell profile per plate, shared
 #                                          input for both branches below (via nbconverted script,
 #                                          one plate/process at a time)
-#   3.bulk_processing.ipynb             -> aggregated/normalized/feature-selected bulk profiles
+#   3.bulk_processing.ipynb             -> per-plate aggregated (un-normalized) bulk profiles
 #                                          (via nbconverted script, one plate/process at a time)
-#   3b.sphering.ipynb                   -> whole-screen sphering step, once every plate has been
-#                                          bulk-processed (via nbconverted script, a single process
-#                                          -- split out of 3.bulk_processing.ipynb so it can be
-#                                          invoked directly instead of via a SPHERING_ONLY flag)
+#   3b.pooled_bulk_processing.ipynb     -> whole-screen processing of the pooled per-plate aggregated
+#                                          profiles in the JUMP recipe's way (variant filter, MAD,
+#                                          inverse normal transform, feature selection)
+#   3c.sphering.ipynb                   -> whole-screen sphering of that pooled profile
 #   4.single_cell_normalize.ipynb       -> normalized single-cell profiles (via nbconverted
 #                                          script, one plate/process at a time)
 #   5.single_cell_feature_select.ipynb  -> feature-selected single-cell profiles (via nbconverted
@@ -183,7 +183,7 @@ echo "Step 3: 3.bulk_processing.ipynb (one plate at a time)"
 echo "======================================"
 
 for plate_id in "${plate_ids[@]}"; do
-    bulk_output="./data/bulk_profiles/${plate_id}_bulk_feature_selected.parquet"
+    bulk_output="./data/bulk_profiles/${plate_id}_bulk_aggregated.parquet"
 
     if [ -f "$bulk_output" ] && [ -z "$overwrite" ]; then
         echo "✅ ${plate_id} already bulk-processed (found ${bulk_output})"
@@ -203,33 +203,49 @@ for plate_id in "${plate_ids[@]}"; do
 done
 
 # -----------------------------
-# Step 3b: sphering (fits the whitening transform once on every plate's
-# pooled normalized profile -- there are no batches/replicate plate groups in
-# this screen -- then applies it once across the whole pooled screen, writing
-# a single spherized profile for the whole screen. Its own notebook/script
-# (3b.sphering.ipynb), split out of 3.bulk_processing.ipynb, so it can be
-# invoked directly here rather than needing a SPHERING_ONLY flag to skip that
-# script's per-plate loop.
+# Step 3b: pooled bulk processing (whole screen, run once). Pools every plate's
+# un-normalized aggregated profile (from step 3) and processes it the way the
+# JUMP profiling recipe does: drop NaN/inf features, per-plate variant filter,
+# MAD normalization per plate, inverse normal transform, pooled feature
+# selection. It reads the per-plate *_bulk_aggregated.parquet files from
+# data/bulk_profiles (or, if that folder has none, from the bandicoot mount)
+# and writes <screen>_pooled_bulk_feature_selected.parquet to data/bulk_profiles.
+# It always recomputes, overwriting its local output.
 # -----------------------------
 echo "======================================"
-echo "Step 3b: 3b.sphering.ipynb (whole screen)"
+echo "Step 3b: 3b.pooled_bulk_processing.ipynb (whole screen)"
 echo "======================================"
 
-spherized_file="./data/spherized_profiles/SK-N-AS_repo1_screen_pooled_bulk_spherized.parquet"
+echo ">>> Running pooled bulk processing for the whole screen"
+python nbconverted/3b.pooled_bulk_processing.py
+exit_code=$?
 
-if [ -f "$spherized_file" ] && [ -z "$overwrite" ]; then
-    echo "✅ Whole-screen spherized profile already exists (${spherized_file})"
+if [ "$exit_code" -ne 0 ]; then
+    echo "Pooled bulk processing FAILED (exit code $exit_code)"
+    failed_plates+=("pooled_bulk_processing:whole_screen")
 else
-    echo ">>> Running sphering for the whole screen"
-    OVERWRITE="$overwrite" python nbconverted/3b.sphering.py
-    exit_code=$?
+    echo "Pooled bulk processing done for whole screen"
+fi
 
-    if [ "$exit_code" -ne 0 ]; then
-        echo "Sphering FAILED (exit code $exit_code)"
-        failed_plates+=("sphering:whole_screen")
-    else
-        echo "Sphering done for whole screen"
-    fi
+# -----------------------------
+# Step 3c: sphering (whole screen, run once). Fits the whitening transform on
+# the pooled negative controls and applies it across the whole pooled screen,
+# writing <screen>_pooled_bulk_spherized.parquet to data/spherized_profiles.
+# Always recomputes, overwriting its local output.
+# -----------------------------
+echo "======================================"
+echo "Step 3c: 3c.sphering.ipynb (whole screen)"
+echo "======================================"
+
+echo ">>> Running sphering for the whole screen"
+python nbconverted/3c.sphering.py
+exit_code=$?
+
+if [ "$exit_code" -ne 0 ]; then
+    echo "Sphering FAILED (exit code $exit_code)"
+    failed_plates+=("sphering:whole_screen")
+else
+    echo "Sphering done for whole screen"
 fi
 
 # -----------------------------
