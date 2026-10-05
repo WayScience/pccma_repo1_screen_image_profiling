@@ -5,7 +5,7 @@ source(file.path("..", "plotting_helpers", "repo1_figure_utils.R"))
 output_dir <- "figures"
 dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
-# disease areas with fewer compounds than this are grouped into "other"
+# disease areas with fewer compounds than this are grouped into "other disease areas"
 min_compounds <- 10
 
 compounds <- read_repo1_compounds()
@@ -19,7 +19,7 @@ shown_areas <- area_totals %>% filter(total >= min_compounds) %>% pull(value)
 n_areas_other <- nrow(area_totals) - length(shown_areas)
 
 no_area_label <- "no disease area"
-other_label <- sprintf("other (%d areas)", n_areas_other)
+other_label <- sprintf("other disease areas (%d)", n_areas_other)
 
 # the bars: each shown area, "other" (compounds in any of the grouped areas, counted once) and compounds with no disease area
 bars <- bind_rows(

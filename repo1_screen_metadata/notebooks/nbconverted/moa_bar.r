@@ -22,7 +22,7 @@ n_tied_out <- sum(moa_counts$total == min(shown$total)) - sum(shown$total == min
 n_moas_other <- nrow(moa_counts) - nrow(shown)
 
 no_moa_label <- "no MOA"
-other_label <- sprintf("other (%d MOAs)", n_moas_other)
+other_label <- sprintf("compounds with other\nMOAs (%d MOAs)", n_moas_other)
 
 # the bars: each shown MOA, "other" (compounds with any of the remaining MOAs, counted once) and compounds with no MOA
 bars <- bind_rows(
@@ -66,7 +66,7 @@ layout <- layout %>%
 group_bands <- layout %>% filter(action != "special") %>% group_by(action) %>%
   summarise(ymin = min(y) - 0.6, ymax = max(y) + 0.6, .groups = "drop") %>%
   mutate(shade = rep(c("grey93", "white"), length.out = n()),
-         name = ifelse(action == "other", "Other actions", actions[as.character(action)]),
+         name = ifelse(action == "other", "MOAs with\nother activities", actions[as.character(action)]),
          name = ifelse(action %in% receptor_groups, paste0("Receptor\n", str_to_lower(name)), name),
          y = (ymin + ymax) / 2, panel = factor("moa", c("special", "moa")))
 
@@ -81,7 +81,7 @@ fig <- ggplot(plot_data, aes(n, y, fill = other_moas, group = stack_order)) +
   geom_text(data = group_bands, aes(Inf, y, label = name), hjust = 1.08, fontface = "bold", size = 4.4, colour = "grey40", lineheight = 0.9, inherit.aes = FALSE) +
   facet_wrap(~panel, ncol = 1, scales = "free") +   # each panel gets its own axis
   scale_fill_gradient(low = "#9ECAE1", high = "#08306B", na.value = "#BAB0AC", limits = c(0, max_other), breaks = 0:max_other,
-                      name = "Other MOAs\nper compound",
+                      name = "How many other\nannotated MOAs\ndoes the\ncompound have?",
                       guide = guide_colourbar(barwidth = unit(1, "lines"), barheight = unit(9, "lines"),
                                           ticks.colour = "grey30", frame.colour = "grey30")) +
   scale_x_continuous(expand = expansion(mult = c(0, 0.1)), labels = scales::comma) +

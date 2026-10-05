@@ -55,9 +55,9 @@ xy <- function(theta, r) data.frame(x = r * sin(theta), y = r * cos(theta))
 genes <- genes %>% mutate(theta = angle_of(chromosome, (start + end) / 2))
 
 # ring radii
-r_ring <- c(0.955, 1.0)   # chromosomes
+r_ring <- c(0.935, 1.0)   # chromosomes
 r_base <- 0.62            # baseline of the bars
-r_top <- 0.935            # bar length of the most targeted gene
+r_top <- 0.915            # bar length of the most targeted gene
 max_n <- max(genes$n_compounds)
 bar_length <- function(n) (r_top - r_base) * n / max_n
 
@@ -86,7 +86,7 @@ scale_labels <- data.frame(n = scale_counts) %>% bind_cols(xy(0, r_base + bar_le
 
 # labels for the most targeted genes, pushed apart where neighbours would overlap
 top <- genes %>% slice_max(n_compounds, n = n_labelled, with_ties = FALSE) %>% arrange(theta)
-min_gap <- 3.4 * pi / 180   # smallest angle between two labels
+min_gap <- 4.6 * pi / 180   # smallest angle between two labels (the labels are large)
 label_theta <- top$theta
 for (iteration in 1:200) {
   for (i in seq_along(label_theta)[-1]) {
@@ -114,7 +114,7 @@ count_theta <- sapply(seq_len(nrow(chromosomes)), function(i) {
   offsets <- sort(c(0, seq(0.25, 0.85, by = 0.05) * rep(c(-1, 1), each = 13) * half_span[i]), decreasing = FALSE)
   offsets <- offsets[order(abs(offsets))]
   for (offset in offsets) {
-    if (all(abs(chromosome_theta[i] + offset - label_theta) >= 3.3 * pi / 180)) return(chromosome_theta[i] + offset)
+    if (all(abs(chromosome_theta[i] + offset - label_theta) >= 4.4 * pi / 180)) return(chromosome_theta[i] + offset)
   }
   chromosome_theta[i]
 })
@@ -122,6 +122,7 @@ count_labels <- bind_cols(chromosomes, xy(count_theta, 1.015)) %>%
   mutate(hjust = 0.5 - 0.5 * sin(count_theta), vjust = 0.5 - 0.5 * cos(count_theta))
 
 spoke_labels <- c(
+  bars = "Number of compounds\nannotated with the\ntarget gene",
   oncology = sprintf("Targeted by an\noncology compound\n(n = %d genes)", sum(genes$oncology)),
   other = sprintf("Other target\ngenes\n(n = %s genes)", format(sum(!genes$oncology), big.mark = ",")))
 spokes <- spokes %>% mutate(group = ifelse(oncology, "oncology", "other"))
@@ -130,25 +131,25 @@ fig <- ggplot() +
   geom_path(data = scale_circles, aes(x, y, group = n), colour = "grey85", linewidth = 0.3, linetype = "dashed") +
   geom_segment(data = spokes %>% filter(!oncology), aes(x, y, xend = xend, yend = yend, colour = group), alpha = 0.25, linewidth = 0.12) +
   geom_segment(data = spokes %>% filter(oncology), aes(x, y, xend = xend, yend = yend, colour = group), alpha = 0.55, linewidth = 0.22) +
-  geom_segment(data = bars, aes(x, y, xend = xend, yend = yend), colour = bar_colour, linewidth = 0.45, lineend = "butt") +
+  geom_segment(data = bars, aes(x, y, xend = xend, yend = yend, colour = "bars"), linewidth = 0.45, lineend = "butt") +
   geom_polygon(data = ring, aes(x, y, group = chromosome, fill = shade), colour = "white", linewidth = 0.3) +
-  geom_text(data = ring_labels, aes(x, y, label = chromosome), colour = "white", size = 2.9, fontface = "bold") +
-  geom_label(data = scale_labels, aes(x, y, label = n), size = 2.6, colour = "grey30", fill = "white", label.size = 0,
+  geom_text(data = ring_labels, aes(x, y, label = chromosome), colour = "white", size = 3.7, fontface = "bold") +
+  geom_label(data = scale_labels, aes(x, y, label = n), size = 3.5, colour = "grey30", fill = "white", linewidth = 0,
              label.padding = unit(0.08, "lines")) +
   geom_segment(data = top, aes(cx, cy, xend = ex, yend = ey), colour = "grey40", linewidth = 0.25) +
-  geom_label(data = count_labels, aes(x, y, label = sprintf("n = %d", n_genes), hjust = hjust, vjust = vjust), size = 2.7, colour = "grey25", fill = "white", label.size = 0,
+  geom_label(data = count_labels, aes(x, y, label = sprintf("n = %d", n_genes), hjust = hjust, vjust = vjust), size = 3.7, colour = "grey25", fill = "white", linewidth = 0,
              label.padding = unit(0.06, "lines")) +
-  geom_text(data = top, aes(lx, ly, label = label, angle = text_angle, hjust = hjust), size = 3.1, colour = "grey10") +
+  geom_text(data = top, aes(lx, ly, label = label, angle = text_angle, hjust = hjust), size = 4.0, colour = "grey10") +
   scale_fill_manual(values = c(a = "#5C6773", b = "#8E98A4"), guide = "none") +
-  scale_colour_manual(values = c(oncology = oncology_colour, other = "grey55"), labels = spoke_labels, name = "Lines",
-                      breaks = c("oncology", "other"),
+  scale_colour_manual(values = c(bars = bar_colour, oncology = oncology_colour, other = "grey55"), labels = spoke_labels, name = "Lines",
+                      breaks = c("bars", "oncology", "other"),
                       guide = guide_legend(override.aes = list(alpha = 1, linewidth = 1.1))) +
-  coord_fixed(xlim = c(-1.22, 1.42), ylim = c(-1.42, 1.39), clip = "off", expand = FALSE) +
+  coord_fixed(xlim = c(-1.3, 1.5), ylim = c(-1.46, 1.42), clip = "off", expand = FALSE) +
   theme_void(base_size = 14) +
   theme(plot.background = element_rect(fill = "white", colour = NA),
         plot.margin = margin(8, 12, 8, 8),
         legend.position = "right", legend.box.spacing = unit(2, "pt"), legend.key.height = unit(1.6, "lines"), legend.key.spacing.y = unit(8, "pt"),
-        legend.title = element_text(face = "bold", size = 11), legend.text = element_text(size = 10),
+        legend.title = element_text(face = "bold", size = 14), legend.text = element_text(size = 12.5),
         legend.background = element_blank(), legend.key.width = unit(2, "lines"))
 
 print(fig)
