@@ -12,7 +12,7 @@ compounds <- read_repo1_compounds()
 n_compounds <- nrow(compounds)
 moa <- read.csv(moa_file)   # one row per compound and MOA
 
-# for each compound, the number of other MOAs it is annotated with
+# count how many other MOAs each compound is annotated with (its number of MOAs minus one)
 per_compound <- moa %>% group_by(compound_id) %>% mutate(other_moas = n_distinct(moa) - 1) %>% ungroup()
 
 moa_counts <- moa %>% count(moa, name = "total") %>% arrange(desc(total))
