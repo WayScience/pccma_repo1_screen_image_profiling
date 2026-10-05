@@ -29,5 +29,5 @@ __pycache__/
 # Ignore log files
 *.log
 
-# Ignore mac files
+# Ignore macOS Finder metadata
 .DS_Store

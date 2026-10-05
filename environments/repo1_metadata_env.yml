@@ -1,0 +1,14 @@
+name: pccma_repo1_metadata_env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pandas
+  - openpyxl
+  - ipykernel
+  - nbconvert
+  - jupyter
+  - pip
+  - pip:
+      # mygene is not on conda-forge; the client version is pinned (the MyGene.info data itself is a live service: see the notebooks)
+      - mygene==3.2.2
