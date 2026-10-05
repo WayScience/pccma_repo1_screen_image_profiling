@@ -8,6 +8,15 @@ moa_file <- file.path("..", "raw_data", "repo1_moa_metadata_annotation.csv")
 n_top <- 40             # MOAs shown individually
 group_gap <- 0.7        # extra space between the groups of bars, in bar heights
 
+#' Drug action of a mechanism of action (MOA): its last word, if that is one of the known actions.
+#'
+#' @param x character: MOA names, for example "adrenergic receptor antagonist".
+#' @param action_pattern character(1): regular expression matching the action words at the end of a name.
+#' @return character, the same length as `x`: the action word (for example "antagonist"), or "other" when there is none.
+action_of <- function(x, action_pattern) {
+  replace_na(str_extract(x, action_pattern), "other")
+}
+
 compounds <- read_repo1_compounds()
 n_compounds <- nrow(compounds)
 moa <- read.csv(moa_file)   # one row per compound and MOA
@@ -37,11 +46,10 @@ cat(sprintf("compounds: %d | with a MOA: %d | MOAs: %d (shown: %d, other: %d; %d
 actions <- c(inhibitor = "Inhibitors", antagonist = "Antagonists", agonist = "Agonists", blocker = "Blockers",
              modulator = "Modulators", activator = "Activators")
 action_pattern <- sprintf("(%s)$", paste(names(actions), collapse = "|"))
-action_of <- function(x) replace_na(str_extract(x, action_pattern), "other")
 special <- c(no_moa_label, other_label)
 
 layout <- bars %>% count(bar, name = "total") %>%
-  mutate(action = ifelse(bar %in% special, "special", action_of(bar)))
+  mutate(action = ifelse(bar %in% special, "special", action_of(bar, action_pattern)))
 group_order <- layout %>% filter(action != "special") %>% group_by(action) %>% summarise(size = sum(total)) %>%
   arrange(desc(size)) %>% pull(action)
 # groups in which every bar is a receptor MOA (e.g. "adrenergic receptor antagonist") are named "Receptor antagonists"

@@ -10,6 +10,46 @@ bar_colour <- "#4C78A8"
 oncology_colour <- "#D62728"
 n_labelled <- 15   # the most targeted genes are labelled
 
+#' Angle of a position on the genome.
+#'
+#' @param chromosome character: chromosome names ("1" to "22", "X", "Y").
+#' @param position numeric: positions on the chromosomes, in bases (same length as `chromosome`, or one value).
+#' @param chromosomes data.frame: one row per chromosome, with the columns `chromosome` and `offset` (where it starts on the circle, in bases).
+#' @param genome_size numeric(1): the total length of the circle, in bases (chromosomes plus the gaps between them).
+#' @return numeric: angles in radians, clockwise from the top.
+angle_of <- function(chromosome, position, chromosomes, genome_size) {
+  2 * pi * (chromosomes$offset[match(chromosome, chromosomes$chromosome)] + position) / genome_size
+}
+
+#' Coordinates of points on a circle.
+#'
+#' @param theta numeric: angles in radians, clockwise from the top.
+#' @param r numeric: radius (one value or one per angle).
+#' @return data.frame with the columns `x` and `y`.
+xy <- function(theta, r) data.frame(x = r * sin(theta), y = r * cos(theta))
+
+#' Length of a bar on the ring of bars.
+#'
+#' @param n numeric: the number of compounds of a gene.
+#' @param r_base numeric(1): the radius where the bars start.
+#' @param r_top numeric(1): the radius reached by the most targeted gene.
+#' @param max_n numeric(1): the largest number of compounds for one gene.
+#' @return numeric: bar lengths, in plot units.
+bar_length <- function(n, r_base, r_top, max_n) (r_top - r_base) * n / max_n
+
+#' Outline of one chromosome's arc on the chromosome ring.
+#'
+#' @param chromosome character(1): the chromosome name.
+#' @param chromosomes data.frame: one row per chromosome, with the columns `chromosome`, `length` and `offset`.
+#' @param genome_size numeric(1): the total length of the circle, in bases.
+#' @param r_ring numeric(2): the inner and outer radius of the ring.
+#' @return data.frame with the columns `x`, `y` and `chromosome`: the polygon points, outer edge then inner edge.
+arc <- function(chromosome, chromosomes, genome_size, r_ring) {
+  info <- chromosomes[chromosomes$chromosome == chromosome, ]
+  theta <- seq(angle_of(chromosome, 0, chromosomes, genome_size), angle_of(chromosome, info$length, chromosomes, genome_size), length.out = 60)
+  rbind(cbind(xy(theta, r_ring[2]), chromosome = chromosome), cbind(xy(rev(theta), r_ring[1]), chromosome = chromosome))
+}
+
 compounds <- read_repo1_compounds()
 targets_all <- read.csv(target_file, colClasses = c(entrez_id = "character"))
 targets <- targets_all %>% filter(!is.na(entrez_id))
@@ -48,41 +88,31 @@ chromosomes <- chromosomes %>%
   mutate(n_genes = coalesce(n_genes, 0L))
 genome_size <- sum(chromosomes$length) + nrow(chromosomes) * gap
 
-# angle (radians, clockwise from the top) of a genome position, and its x/y at radius r
-angle_of <- function(chromosome, position) 2 * pi * (chromosomes$offset[match(chromosome, chromosomes$chromosome)] + position) / genome_size
-xy <- function(theta, r) data.frame(x = r * sin(theta), y = r * cos(theta))
-
-genes <- genes %>% mutate(theta = angle_of(chromosome, (start + end) / 2))
+genes <- genes %>% mutate(theta = angle_of(chromosome, (start + end) / 2, chromosomes, genome_size))
 
 # ring radii
 r_ring <- c(0.935, 1.0)   # chromosomes
 r_base <- 0.62            # baseline of the bars
 r_top <- 0.915            # bar length of the most targeted gene
 max_n <- max(genes$n_compounds)
-bar_length <- function(n) (r_top - r_base) * n / max_n
 
 # chromosome ring: one arc per chromosome, with its name in the ring and its number of target genes above it
-arc <- function(chromosome) {
-  info <- chromosomes[chromosomes$chromosome == chromosome, ]
-  theta <- seq(angle_of(chromosome, 0), angle_of(chromosome, info$length), length.out = 60)
-  rbind(cbind(xy(theta, r_ring[2]), chromosome = chromosome), cbind(xy(rev(theta), r_ring[1]), chromosome = chromosome))
-}
-ring <- bind_rows(lapply(chromosomes$chromosome, arc)) %>%
+ring <- bind_rows(lapply(chromosomes$chromosome, arc, chromosomes = chromosomes, genome_size = genome_size, r_ring = r_ring)) %>%
   mutate(shade = ifelse(match(chromosome, chromosomes$chromosome) %% 2 == 1, "a", "b"))
-chromosome_theta <- angle_of(chromosomes$chromosome, chromosomes$length / 2)
+chromosome_theta <- angle_of(chromosomes$chromosome, chromosomes$length / 2, chromosomes, genome_size)
 ring_labels <- bind_cols(chromosomes, xy(chromosome_theta, mean(r_ring)))
 
 # bars and spokes
-bars <- bind_cols(genes, xy(genes$theta, r_base), xy(genes$theta, r_base + bar_length(genes$n_compounds)) %>% rename(xend = x, yend = y))
+bars <- bind_cols(genes, xy(genes$theta, r_base), xy(genes$theta, r_base + bar_length(genes$n_compounds, r_base, r_top, max_n)) %>% rename(xend = x, yend = y))
 spokes <- bind_cols(genes[c("theta", "oncology")], xy(genes$theta, r_base), data.frame(xend = 0, yend = 0))
 
 # scale circles for the bars, labelled in the gap at the top of the circle
 scale_counts <- c(25, 50, 75)
 scale_circles <- bind_rows(lapply(c(0, scale_counts), function(n) {
   theta <- seq(0, 2 * pi, length.out = 300)
-  cbind(xy(theta, r_base + bar_length(n)), n = n)
+  cbind(xy(theta, r_base + bar_length(n, r_base, r_top, max_n)), n = n)
 }))
-scale_labels <- data.frame(n = scale_counts) %>% bind_cols(xy(0, r_base + bar_length(scale_counts)))
+scale_labels <- data.frame(n = scale_counts) %>% bind_cols(xy(0, r_base + bar_length(scale_counts, r_base, r_top, max_n)))
 
 # labels for the most targeted genes, pushed apart where neighbours would overlap
 top <- genes %>% slice_max(n_compounds, n = n_labelled, with_ties = FALSE) %>% arrange(theta)

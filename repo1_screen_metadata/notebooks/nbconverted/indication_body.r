@@ -15,6 +15,44 @@ eye_points <- data.frame(x = c(49.4, 55.8), y = c(-12.8, -12.8))
 eye_radius <- c(2.1, 1.1)
 other_anchor <- c(52.9, -80)   # where the "Other" block points on the body: the middle of the abdomen
 
+#' Where an organ is pointed to on the body.
+#'
+#' @param organ character(1): the organ name in the gganatogram package.
+#' @param male list: the package's male anatogram (`gganatogram::hgMale_list`), one table of polygon points per organ.
+#' @param anchor_overrides named list: organs pointed to by hand, each a numeric(2) c(x, y).
+#' @return data.frame with the columns `organ`, `x` and `y`: the centre of the organ's right-hand part (the image right).
+organ_anchor <- function(organ, male, anchor_overrides) {
+  d <- male[[organ]]
+  if (organ == "skin") {   # the skin is the outline of the body: point at its right shoulder
+    shoulder <- !is.na(d$x) & -d$y > -38 & -d$y < -28
+    return(data.frame(organ = organ, x = max(d$x[shoulder]), y = -d$y[shoulder][which.max(d$x[shoulder])]))
+  }
+  if (organ %in% names(anchor_overrides)) return(data.frame(organ = organ, x = anchor_overrides[[organ]][1], y = anchor_overrides[[organ]][2]))
+  parts <- split(d[!is.na(d$x), ], cumsum(is.na(d$x))[!is.na(d$x)])   # organs made of several shapes are separated by NA rows
+  centres <- bind_rows(lapply(parts, function(p) data.frame(x = mean(p$x), y = -mean(p$y))))
+  cbind(organ = organ, centres[which.max(centres$x), ])
+}
+
+#' Length of the longest text line in the blocks on one side of the body.
+#'
+#' @param blocks data.frame: one row per text block, with the columns `text` (lines separated by newlines) and `side`.
+#' @param side character(1): "left" or "right".
+#' @return numeric(1): the number of characters of the longest line.
+longest <- function(blocks, side) {
+  max(nchar(strsplit(paste(blocks$text[blocks$side == side], collapse = "\n"), "\n")[[1]]))
+}
+
+#' Points of an ellipse, for drawing an eye.
+#'
+#' @param cx,cy numeric(1): the centre.
+#' @param rx,ry numeric(1): the radii along x and y.
+#' @param n integer(1): the number of points around the ellipse.
+#' @return data.frame with the columns `x` and `y`.
+ellipse <- function(cx, cy, rx, ry, n = 40) {
+  t <- seq(0, 2 * pi, length.out = n)
+  data.frame(x = cx + rx * cos(t), y = cy + ry * sin(t))
+}
+
 compounds <- read_repo1_compounds()
 organ_map <- read.csv(map_file, stringsAsFactors = FALSE)
 
@@ -45,18 +83,7 @@ print(as.data.frame(body_items %>% select(display_name, organ, n)))
 # The lung and breast shapes in the package are on the left, so those two are pointed to on the right of the chest by hand.
 anchor_overrides <- list(lung = c(59.5, -36), breast = c(61.5, -47.5), eye = c(55.8, -12.8))
 male <- gganatogram::hgMale_list
-organ_anchor <- function(organ) {
-  d <- male[[organ]]
-  if (organ == "skin") {   # the skin is the outline of the body: point at its right shoulder
-    shoulder <- !is.na(d$x) & -d$y > -38 & -d$y < -28
-    return(data.frame(organ = organ, x = max(d$x[shoulder]), y = -d$y[shoulder][which.max(d$x[shoulder])]))
-  }
-  if (organ %in% names(anchor_overrides)) return(data.frame(organ = organ, x = anchor_overrides[[organ]][1], y = anchor_overrides[[organ]][2]))
-  parts <- split(d[!is.na(d$x), ], cumsum(is.na(d$x))[!is.na(d$x)])   # organs made of several shapes are separated by NA rows
-  centres <- bind_rows(lapply(parts, function(p) data.frame(x = mean(p$x), y = -mean(p$y))))
-  cbind(organ = organ, centres[which.max(centres$x), ])
-}
-anchors <- bind_rows(lapply(unique(body_items$organ), organ_anchor))
+anchors <- bind_rows(lapply(unique(body_items$organ), organ_anchor, male = male, anchor_overrides = anchor_overrides))
 
 outline <- male[["human_male_outline"]]
 body_x <- range(outline$x, na.rm = TRUE)
@@ -116,18 +143,13 @@ blocks <- blocks %>%
 text_x_right <- body_x[2] + gap_to_text
 text_x_left <- body_x[1] - gap_to_text
 blocks <- blocks %>% mutate(text_x = ifelse(right_side, text_x_right, text_x_left))
-longest <- function(side) max(nchar(strsplit(paste(blocks$text[blocks$side == side], collapse = "\n"), "\n")[[1]]))
 legend_room <- 14   # plot units under the feet for the colour bar
-x_lim <- c(text_x_left - longest("left") * 1.9, text_x_right + longest("right") * 1.9)
+x_lim <- c(text_x_left - longest(blocks, "left") * 1.9, text_x_right + longest(blocks, "right") * 1.9)
 y_lim <- c(min(body_y[1] - legend_room, min(blocks$top - blocks$height)) - 2, body_y[2] + 2)
 fig_width <- diff(x_lim) / units_per_inch
 fig_height <- diff(y_lim) / units_per_inch
 cat(sprintf("figure size: %.1f x %.1f in | blocks on the left: %d, on the right: %d\n", fig_width, fig_height, sum(!blocks$right_side), sum(blocks$right_side)))
 
-ellipse <- function(cx, cy, rx, ry, n = 40) {
-  t <- seq(0, 2 * pi, length.out = n)
-  data.frame(x = cx + rx * cos(t), y = cy + ry * sin(t))
-}
 eye_value <- organ_compounds$n_compounds[organ_compounds$organ == "eye"]
 eyes <- bind_rows(lapply(seq_len(nrow(eye_points)), function(i) cbind(ellipse(eye_points$x[i], eye_points$y[i], eye_radius[1], eye_radius[2]), eye = i, value = eye_value)))
 
