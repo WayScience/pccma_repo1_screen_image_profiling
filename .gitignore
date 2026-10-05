@@ -28,3 +28,6 @@ __pycache__/
 
 # Ignore log files
 *.log
+
+# Ignore macOS Finder metadata
+.DS_Store
