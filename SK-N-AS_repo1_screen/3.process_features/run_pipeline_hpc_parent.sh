@@ -52,9 +52,10 @@ for plate_id in "${plate_ids[@]}"; do
     echo "Found: $plate_id"
 done
 
-# loop over each plate and submit a child job. Runs steps 1-5 only --
-# sphering is not run on HPC; run 3b.sphering.ipynb locally once every
-# plate's bulk-processed output has been synced back.
+# loop over each plate and submit a child job. Runs steps 1-5 only -- the
+# whole-screen steps are not run on HPC; run 3b.pooled_bulk_processing.ipynb
+# and 3c.sphering.ipynb locally once every plate's aggregated output has been
+# synced back.
 for plate_id in "${plate_ids[@]}"; do
     # check job count for this user
     number_of_jobs=$(squeue -u "$USER" | wc -l)

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # Process bulk profiles
+# # Aggregate bulk profiles
 # 
-# > NOTE: For bulk profiles, we normalize to the negative controls and use MAD robustize as the "standard".
+# Aggregates each plate's cleaned single cells to one profile per well (the median of the cells) and writes it to `data/bulk_profiles/<plate>_bulk_aggregated.parquet`. These per-plate, un-normalized profiles are the input of `3b.pooled_bulk_processing.ipynb`, where normalization and feature selection happen once over the whole screen.
 
 # ## Import libraries
 
@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 
 import pandas as pd
 import pyarrow.parquet as pq
-from pycytominer import aggregate, feature_select, normalize
+from pycytominer import aggregate
 from pycytominer.cyto_utils import output
 
 
@@ -62,24 +62,6 @@ plate_names = sorted(
     file.stem.removesuffix("_converted")
     for file in converted_dir.glob("*_converted.parquet")
 )
-
-# Wells with no compound (`Metadata_Batch_Id` is blank) that still received
-# the DMSO vehicle are the negative controls
-neg_control_query = 'Metadata_Batch_Id.isna() and Metadata_Solvent == "DMSO"'
-
-# operations to perform for feature selection
-# NOTE: drop_na_columns runs before correlation_threshold on purpose. Several
-# Costes correlation features are NaN for some cells, and pycytominer's
-# correlation_threshold falls back to a much slower NaN-aware pandas .corr()
-# (instead of a fast BLAS np.corrcoef) if any NaNs are still present in the
-# feature columns it's given. Dropping NaN columns first keeps it on the fast path.
-feature_select_ops = [
-    "drop_na_columns",
-    "blocklist", # default block list uses same standard CP naming convention
-    "frequency_threshold",
-    "variance_threshold",
-    "correlation_threshold",
-]
 
 plate_names
 
@@ -147,17 +129,13 @@ for plate_id, info in plate_info_dictionary.items():
         )
         continue
 
-    # Output file paths for each file
+    # Output file path
     output_aggregated_file = str(output_dir / f"{plate_id}_bulk_aggregated.parquet")
-    output_normalized_file = str(output_dir / f"{plate_id}_bulk_normalized.parquet")
-    output_feature_select_file = str(
-        output_dir / f"{plate_id}_bulk_feature_selected.parquet"
-    )
 
-    # Already fully processed, so this plate can safely be skipped on a rerun
+    # Already aggregated, so this plate can safely be skipped on a rerun
     # (unless OVERWRITE is set, in which case it's reprocessed regardless)
-    if pathlib.Path(output_feature_select_file).exists() and not overwrite:
-        print(f"Skipping {plate_id}: already processed (found {output_feature_select_file})")
+    if pathlib.Path(output_aggregated_file).exists() and not overwrite:
+        print(f"Skipping {plate_id}: already processed (found {output_aggregated_file})")
         continue
 
     print(f"Now performing pycytominer pipeline for {plate_id}")
@@ -202,47 +180,14 @@ for plate_id, info in plate_info_dictionary.items():
     )
     aggregate_seconds = time.time() - aggregate_start_time
 
-    # Clear memory -- annotated_df is full single-cell scale; everything
-    # from here on operates on the much smaller well-level aggregated_df
-    del annotated_df
-    gc.collect()
-
-    # Step 2: Normalization (whole-plate) -- feed aggregate()'s own in-memory
-    # result directly instead of re-reading output_aggregated_file back off disk.
-    normalize_start_time = time.time()
-    normalize(
-        profiles=aggregated_df,
-        method="mad_robustize", # use robustize to avoid influence of outliers in the normalization
-        samples=neg_control_query, # normalize to negative controls only, not all wells (which would include compound wells)
-        output_file=output_normalized_file,
-        output_type="parquet",
-    )
-    normalize_seconds = time.time() - normalize_start_time
-
     # Clear memory
-    del aggregated_df
+    del annotated_df, aggregated_df
     gc.collect()
-
-    # Step 3: Feature selection
-    feature_select_start_time = time.time()
-    feature_select(
-        output_normalized_file,
-        operation=feature_select_ops,
-        corr_threshold=0.90, # keep the same default value for correlation_threshold to be more strict as to identify the most informative features
-        freq_cut=0.05, # keep the same default value for freq_cut
-        unique_cut=0.01, # keep the same default value for unique_cut
-        na_cutoff=0, # update na_cutoff from default to 0 to remove any columns with any NaN values (best for downstream modeling)
-        output_file=output_feature_select_file,
-        output_type="parquet",
-    )
-    feature_select_seconds = time.time() - feature_select_start_time
 
     total_seconds = time.time() - plate_start_time
     print(
-        f"Bulk processing completed for {plate_id}! "
-        f"(aggregate={aggregate_seconds:.1f}s, "
-        f"normalize={normalize_seconds:.1f}s, feature_select={feature_select_seconds:.1f}s, "
-        f"total={total_seconds:.1f}s)"
+        f"Bulk aggregation completed for {plate_id}! "
+        f"(aggregate={aggregate_seconds:.1f}s, total={total_seconds:.1f}s)"
     )
 
     # Record timing so per-plate performance can be compared across runs
@@ -250,22 +195,11 @@ for plate_id, info in plate_info_dictionary.items():
     with open(timing_log_path, "a", newline="") as f:
         writer = csv.writer(f)
         if write_header:
-            writer.writerow(
-                [
-                    "plate_id",
-                    "aggregate_seconds",
-                    "normalize_seconds",
-                    "feature_select_seconds",
-                    "total_seconds",
-                    "timestamp",
-                ]
-            )
+            writer.writerow(["plate_id", "aggregate_seconds", "total_seconds", "timestamp"])
         writer.writerow(
             [
                 plate_id,
                 f"{aggregate_seconds:.1f}",
-                f"{normalize_seconds:.1f}",
-                f"{feature_select_seconds:.1f}",
                 f"{total_seconds:.1f}",
                 datetime.now(timezone.utc).isoformat(timespec="seconds"),
             ]
