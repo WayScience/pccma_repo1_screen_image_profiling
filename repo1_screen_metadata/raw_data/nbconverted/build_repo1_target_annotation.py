@@ -6,18 +6,46 @@
 # Builds `repo1_target_metadata_annotation.csv`: one row per compound and annotated target gene, with columns `gene_symbol`, `entrez_id` and `compound_id`.
 # 
 # The `Target` column of `REPO1_April2025.xlsx` holds comma-separated gene symbols. Entrez IDs are looked up with the MyGene.info service (only the gene symbols are sent). Symbols that are no longer current are matched through their aliases; symbols that cannot be matched (for example non-human targets) are kept with an empty `entrez_id`.
+# 
+# MyGene.info is a live service, so the results can change slightly between runs; the data version used is printed below and the `mygene` client version is pinned in `environments/repo1_metadata_env.yml`.
 
-# In[ ]:
+# In[1]:
 
 
 import pandas as pd
+import importlib.metadata
+
 import mygene
 
 plate_map_file = "../REPO1_April2025.xlsx"
 output_file = "repo1_target_metadata_annotation.csv"
 
 
-# In[ ]:
+# ### Helper functions
+# 
+# All functions used below are defined here.
+
+# In[2]:
+
+
+def query(mg: mygene.MyGeneInfo, terms: list[str], scope: str) -> pd.DataFrame:
+    """Look terms up in MyGene.info and return the hits, without the terms that were not found.
+
+    Args:
+        mg: The MyGene.info client.
+        terms: The gene symbols (or aliases) to look up.
+        scope: The field the terms are matched against, "symbol" or "alias".
+
+    Returns:
+        A table of hits with the columns `query`, `entrezgene` and `symbol`.
+    """
+    hits = mg.querymany(terms, scopes=scope, fields="entrezgene,symbol", species="human", verbose=False)
+    hits = pd.DataFrame(hits)
+    # drop the terms MyGene.info could not find
+    return hits[hits["notfound"].ne(True)] if "notfound" in hits else hits
+
+
+# In[3]:
 
 
 plate_map = pd.read_excel(plate_map_file, sheet_name="REPO2025_PlateMap")
@@ -39,31 +67,31 @@ symbols = sorted(pairs["gene_symbol"].unique())
 print(f"compounds: {len(compounds)} | with a target: {pairs['compound_id'].nunique()} | compound-gene pairs: {len(pairs)} | unique symbols: {len(symbols)}")
 
 
-# In[ ]:
+# In[4]:
 
 
 mg = mygene.MyGeneInfo()
 
-def query(terms, scope):
-    hits = mg.querymany(terms, scopes=scope, fields="entrezgene,symbol", species="human", verbose=False)
-    hits = pd.DataFrame(hits)
-    # drop the terms MyGene.info could not find
-    return hits[hits["notfound"].ne(True)] if "notfound" in hits else hits
+# MyGene.info is a live service whose data is updated regularly, so a later run can differ slightly from the committed tables
+# (for example, a symbol that had no Entrez ID can gain one). Record which data version this run used.
+service = mg.metadata()
+print(f"MyGene.info build {service['build_version']} (Entrez data {service['src']['entrez']['version']}), "
+      f"human genome {service['genome_assembly']['human']}, mygene client {importlib.metadata.version('mygene')}")
 
 # first pass: official gene symbols
-official = query(symbols, "symbol")
+official = query(mg, symbols, "symbol")
 official = official[official["symbol"].str.upper() == official["query"].str.upper()]
 official = official.drop_duplicates("query")
 mapping = dict(zip(official["query"], official["entrezgene"]))
 print(f"matched by official symbol: {len(mapping)} of {len(symbols)}")
 
 
-# In[ ]:
+# In[5]:
 
 
 # second pass: symbols that are not (or no longer) official symbols, matched through aliases when unambiguous
 remaining = [s for s in symbols if s not in mapping]
-alias = query(remaining, "alias")
+alias = query(mg, remaining, "alias")
 counts = alias.groupby("query")["entrezgene"].nunique()
 unique_alias = alias[alias["query"].isin(counts[counts == 1].index)].drop_duplicates("query")
 # family names that MyGene.info resolves to one member gene are not specific to that gene, so they are left empty
@@ -81,7 +109,7 @@ print("ambiguous:", ambiguous)
 print("unmatched:", unmatched)
 
 
-# In[ ]:
+# In[6]:
 
 
 annotation = pairs.assign(entrez_id=pairs["gene_symbol"].map(mapping).astype("string")).loc[:, ["gene_symbol", "entrez_id", "compound_id"]]

@@ -1,0 +1,20 @@
+name: pccma_repo1_figures_r_env
+channels:
+  - conda-forge
+dependencies:
+  - r-base=4.4
+  - r-irkernel
+  - r-dplyr
+  - r-tidyr
+  - r-stringr
+  - r-readr
+  - r-readxl
+  - r-forcats
+  - r-scales
+  - r-ggplot2
+  - r-ggpolypath
+  - r-remotes
+  - jupyter
+  - nbconvert
+  # gganatogram (used by indication_body) is not on conda-forge or CRAN: after creating the environment, run
+  #   Rscript -e 'remotes::install_github("jespermaag/gganatogram")'

@@ -8,15 +8,23 @@
 #                  (only gene symbols / Entrez IDs are sent), so this step needs an internet connection.
 #   2. notebooks/  the figure notebooks (R) create the figures (png and pdf) in notebooks/figures/.
 #
-# Requirements
-#   step 1: python3 with jupyter (nbconvert), pandas, openpyxl and mygene
-#   step 2: R with dplyr, tidyr, stringr, readxl, forcats, scales, ggplot2 and gganatogram (not on CRAN or conda-forge;
-#           install it with devtools::install_github("jespermaag/gganatogram")), and jupyter (nbconvert)
+# Requirements (the two conda environments are defined in ../environments/)
+#   step 1: ../environments/repo1_metadata_env.yml   python with jupyter (nbconvert), pandas, openpyxl and mygene
+#   step 2: ../environments/repo1_figures_r_env.yml   R with dplyr, tidyr, stringr, readr, readxl, forcats, scales, ggplot2 and
+#           IRkernel, plus jupyter (nbconvert). gganatogram is not on CRAN or conda-forge: after creating the environment, run
+#           Rscript -e 'remotes::install_github("jespermaag/gganatogram")'
+#   To create them (once):
+#           conda env create -f ../environments/repo1_metadata_env.yml
+#           conda env create -f ../environments/repo1_figures_r_env.yml
+#   To open the figure notebooks in Jupyter, register the R kernel as "ir" (the kernel named in the notebooks), once:
+#           conda activate pccma_repo1_figures_r_env
+#           Rscript -e 'IRkernel::installspec(name = "ir", displayname = "R")'
 #
 # Usage:
 #   bash create_repo1_figures.bash
 # Optional environment variables:
-#   PY_ENV, R_ENV     conda environments to activate for step 1 and step 2 (default: use the current environment)
+#   PY_ENV, R_ENV     conda environments to activate for step 1 and step 2 (default: use the current environment), e.g.
+#                     PY_ENV=pccma_repo1_metadata_env R_ENV=pccma_repo1_figures_r_env bash create_repo1_figures.bash
 #   SKIP_METADATA=1   skip step 1 and use the tables already in raw_data/ (no internet connection needed), e.g.
 #                     SKIP_METADATA=1 bash create_repo1_figures.bash
 
